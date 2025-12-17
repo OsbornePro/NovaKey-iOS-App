@@ -1,0 +1,614 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AB2EF354310011D282 /* NovaKeyApp.swift */; };
+		B94715AE2EF354310011D282 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AD2EF354310011D282 /* ContentView.swift */; };
+		B94715B02EF354340011D282 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715AF2EF354340011D282 /* Assets.xcassets */; };
+		B94715B32EF354340011D282 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715B22EF354340011D282 /* Preview Assets.xcassets */; };
+		B94715B52EF354340011D282 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715B42EF354340011D282 /* Persistence.swift */; };
+		B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */; };
+		B94715C22EF354350011D282 /* NovaKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715C12EF354350011D282 /* NovaKeyTests.swift */; };
+		B94715CC2EF354350011D282 /* NovaKeyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CB2EF354350011D282 /* NovaKeyUITests.swift */; };
+		B94715CE2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B94715BE2EF354350011D282 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B94715A02EF354300011D282 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B94715A72EF354310011D282;
+			remoteInfo = NovaKey;
+		};
+		B94715C82EF354350011D282 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B94715A02EF354300011D282 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B94715A72EF354310011D282;
+			remoteInfo = NovaKey;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B94715A82EF354310011D282 /* NovaKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NovaKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B94715AB2EF354310011D282 /* NovaKeyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyApp.swift; sourceTree = "<group>"; };
+		B94715AD2EF354310011D282 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B94715AF2EF354340011D282 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B94715B22EF354340011D282 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		B94715B42EF354340011D282 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		B94715B72EF354340011D282 /* NovaKey.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NovaKey.xcdatamodel; sourceTree = "<group>"; };
+		B94715BD2EF354350011D282 /* NovaKeyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NovaKeyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B94715C12EF354350011D282 /* NovaKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyTests.swift; sourceTree = "<group>"; };
+		B94715C72EF354350011D282 /* NovaKeyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NovaKeyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B94715CB2EF354350011D282 /* NovaKeyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyUITests.swift; sourceTree = "<group>"; };
+		B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B94715A52EF354310011D282 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715BA2EF354350011D282 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715C42EF354350011D282 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B947159F2EF354300011D282 = {
+			isa = PBXGroup;
+			children = (
+				B94715AA2EF354310011D282 /* NovaKey */,
+				B94715C02EF354350011D282 /* NovaKeyTests */,
+				B94715CA2EF354350011D282 /* NovaKeyUITests */,
+				B94715A92EF354310011D282 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B94715A92EF354310011D282 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B94715A82EF354310011D282 /* NovaKey.app */,
+				B94715BD2EF354350011D282 /* NovaKeyTests.xctest */,
+				B94715C72EF354350011D282 /* NovaKeyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B94715AA2EF354310011D282 /* NovaKey */ = {
+			isa = PBXGroup;
+			children = (
+				B94715AB2EF354310011D282 /* NovaKeyApp.swift */,
+				B94715AD2EF354310011D282 /* ContentView.swift */,
+				B94715AF2EF354340011D282 /* Assets.xcassets */,
+				B94715B42EF354340011D282 /* Persistence.swift */,
+				B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */,
+				B94715B12EF354340011D282 /* Preview Content */,
+			);
+			path = NovaKey;
+			sourceTree = "<group>";
+		};
+		B94715B12EF354340011D282 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				B94715B22EF354340011D282 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		B94715C02EF354350011D282 /* NovaKeyTests */ = {
+			isa = PBXGroup;
+			children = (
+				B94715C12EF354350011D282 /* NovaKeyTests.swift */,
+			);
+			path = NovaKeyTests;
+			sourceTree = "<group>";
+		};
+		B94715CA2EF354350011D282 /* NovaKeyUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B94715CB2EF354350011D282 /* NovaKeyUITests.swift */,
+				B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */,
+			);
+			path = NovaKeyUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B94715A72EF354310011D282 /* NovaKey */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B94715D12EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKey" */;
+			buildPhases = (
+				B94715A42EF354310011D282 /* Sources */,
+				B94715A52EF354310011D282 /* Frameworks */,
+				B94715A62EF354310011D282 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NovaKey;
+			productName = NovaKey;
+			productReference = B94715A82EF354310011D282 /* NovaKey.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B94715BC2EF354350011D282 /* NovaKeyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B94715D42EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKeyTests" */;
+			buildPhases = (
+				B94715B92EF354350011D282 /* Sources */,
+				B94715BA2EF354350011D282 /* Frameworks */,
+				B94715BB2EF354350011D282 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B94715BF2EF354350011D282 /* PBXTargetDependency */,
+			);
+			name = NovaKeyTests;
+			productName = NovaKeyTests;
+			productReference = B94715BD2EF354350011D282 /* NovaKeyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B94715C62EF354350011D282 /* NovaKeyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B94715D72EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKeyUITests" */;
+			buildPhases = (
+				B94715C32EF354350011D282 /* Sources */,
+				B94715C42EF354350011D282 /* Frameworks */,
+				B94715C52EF354350011D282 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B94715C92EF354350011D282 /* PBXTargetDependency */,
+			);
+			name = NovaKeyUITests;
+			productName = NovaKeyUITests;
+			productReference = B94715C72EF354350011D282 /* NovaKeyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B94715A02EF354300011D282 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					B94715A72EF354310011D282 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					B94715BC2EF354350011D282 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = B94715A72EF354310011D282;
+					};
+					B94715C62EF354350011D282 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = B94715A72EF354310011D282;
+					};
+				};
+			};
+			buildConfigurationList = B94715A32EF354300011D282 /* Build configuration list for PBXProject "NovaKey" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B947159F2EF354300011D282;
+			productRefGroup = B94715A92EF354310011D282 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B94715A72EF354310011D282 /* NovaKey */,
+				B94715BC2EF354350011D282 /* NovaKeyTests */,
+				B94715C62EF354350011D282 /* NovaKeyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B94715A62EF354310011D282 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B94715B32EF354340011D282 /* Preview Assets.xcassets in Resources */,
+				B94715B02EF354340011D282 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715BB2EF354350011D282 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715C52EF354350011D282 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B94715A42EF354310011D282 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B94715B52EF354340011D282 /* Persistence.swift in Sources */,
+				B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */,
+				B94715AE2EF354310011D282 /* ContentView.swift in Sources */,
+				B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715B92EF354350011D282 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B94715C22EF354350011D282 /* NovaKeyTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94715C32EF354350011D282 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B94715CE2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift in Sources */,
+				B94715CC2EF354350011D282 /* NovaKeyUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B94715BF2EF354350011D282 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B94715A72EF354310011D282 /* NovaKey */;
+			targetProxy = B94715BE2EF354350011D282 /* PBXContainerItemProxy */;
+		};
+		B94715C92EF354350011D282 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B94715A72EF354310011D282 /* NovaKey */;
+			targetProxy = B94715C82EF354350011D282 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B94715CF2EF354350011D282 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B94715D02EF354350011D282 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B94715D22EF354350011D282 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"NovaKey/Preview Content\"";
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKey;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B94715D32EF354350011D282 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"NovaKey/Preview Content\"";
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKey;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B94715D52EF354350011D282 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKeyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NovaKey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NovaKey";
+			};
+			name = Debug;
+		};
+		B94715D62EF354350011D282 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKeyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NovaKey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NovaKey";
+			};
+			name = Release;
+		};
+		B94715D82EF354350011D282 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKeyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = NovaKey;
+			};
+			name = Debug;
+		};
+		B94715D92EF354350011D282 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8G5577USG6;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.osbornepro.NovaKey.NovaKeyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = NovaKey;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B94715A32EF354300011D282 /* Build configuration list for PBXProject "NovaKey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B94715CF2EF354350011D282 /* Debug */,
+				B94715D02EF354350011D282 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B94715D12EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B94715D22EF354350011D282 /* Debug */,
+				B94715D32EF354350011D282 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B94715D42EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKeyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B94715D52EF354350011D282 /* Debug */,
+				B94715D62EF354350011D282 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B94715D72EF354350011D282 /* Build configuration list for PBXNativeTarget "NovaKeyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B94715D82EF354350011D282 /* Debug */,
+				B94715D92EF354350011D282 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				B94715B72EF354340011D282 /* NovaKey.xcdatamodel */,
+			);
+			currentVersion = B94715B72EF354340011D282 /* NovaKey.xcdatamodel */;
+			path = NovaKey.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = B94715A02EF354300011D282 /* Project object */;
+}
