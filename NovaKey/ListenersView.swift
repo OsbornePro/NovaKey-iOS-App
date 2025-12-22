@@ -7,6 +7,10 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
+import UniformTypeIdentifiers
+import VisionKit
+
 
 struct ListenersView: View {
     @Environment(\.dismiss) private var dismiss
@@ -24,7 +28,6 @@ struct ListenersView: View {
 
     // Pairing sheet
     @State private var pairingFor: PairedListener?
-    @State private var showPairingSheet = false
 
     // Edit sheet (name + notes only)
     @State private var editing: PairedListener?
@@ -101,25 +104,18 @@ struct ListenersView: View {
                     Button("Done") { dismiss() }
                 }
             }
-
-            // Pairing JSON paste sheet (NOW always tied to a listener)
-            .sheet(isPresented: $showPairingSheet, onDismiss: { pairingFor = nil }) {
-                if let l = pairingFor {
-                    PairingPasteSheet(listener: l) { result in
-                        switch result {
-                        case .saved:
-                            toast("Paired with \(l.displayName)")
-                        case .mismatch(let expected, let got):
-                            toast("Pairing mismatch: expected \(expected), got \(got)")
-                        case .failed:
-                            toast("Pairing failed")
-                        case .cancelled:
-                            break
-                        }
+            .navigationDestination(item: $pairingFor) { l in
+                PairingPasteSheet(listener: l) { result in
+                    switch result {
+                    case .saved:
+                        toast("Paired with \(l.displayName)")
+                    case .mismatch(let expected, let got):
+                        toast("Pairing mismatch: expected \(expected), got \(got)")
+                    case .failed:
+                        toast("Pairing failed")
+                    case .cancelled:
+                        break
                     }
-                } else {
-                    Text("No listener selected")
-                        .padding()
                 }
             }
 
@@ -147,6 +143,7 @@ struct ListenersView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            
         }
     }
 
@@ -212,6 +209,16 @@ struct ListenersView: View {
                 presentPairSheet(for: l)
             }
 
+            // DEBUG BUTTON (goes HERE)
+            Button("Debug: Check Paired") {
+                let loaded = PairingManager.load(host: l.host, port: l.port)
+                if loaded != nil {
+                    toast("✅ Keychain has pairing for \(l.host):\(l.port)")
+                } else {
+                    toast("❌ No pairing in keychain for \(l.host):\(l.port)")
+                }
+            }
+
             Divider()
 
             Button("Delete", role: .destructive) { deleteOne(l) }
@@ -237,9 +244,7 @@ struct ListenersView: View {
     }
 
     private func presentPairSheet(for l: PairedListener) {
-        // Ensure listener is set BEFORE presenting sheet
-        pairingFor = l
-        showPairingSheet = true
+        pairingFor = l   // this triggers the navigationDestination push
     }
 
     // MARK: - Edit (name + notes only)
@@ -435,7 +440,6 @@ private struct EditListenerSheet: View {
 }
 
 // MARK: - Pairing paste sheet (Scan QR -> fetch /pair/bootstrap -> save -> /pair/complete)
-
 private struct PairingPasteSheet: View {
     enum Result {
         case saved
@@ -470,15 +474,14 @@ private struct PairingPasteSheet: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                if #available(iOS 16.0, *) {
-                    Button {
-                        errorText = nil
-                        showQRScanner = true
-                    } label: {
-                        Label("Scan QR Code", systemImage: "qrcode.viewfinder")
-                    }
-                    .buttonStyle(.borderedProminent)
+                // ✅ ALWAYS show the Scan button (fallback scanner handles older/unsupported devices)
+                Button {
+                    errorText = nil
+                    showQRScanner = true
+                } label: {
+                    Label("Scan QR Code", systemImage: "qrcode.viewfinder")
                 }
+                .buttonStyle(.borderedProminent)
 
                 TextEditor(text: $jsonText)
                     .font(.system(.footnote, design: .monospaced))
@@ -524,8 +527,12 @@ private struct PairingPasteSheet: View {
             } message: {
                 Text("Listener is \(mismatchExpected) but pairing blob is \(mismatchGot).\n\nCreate/update a listener that matches, then pair again.")
             }
+
+            // Replace your sheet with this: VisionKit when supported, else AVFoundation fallback
             .sheet(isPresented: $showQRScanner) {
-                if #available(iOS 16.0, *) {
+                if #available(iOS 16.0, *),
+                   DataScannerViewController.isSupported,
+                   DataScannerViewController.isAvailable {
                     QRScannerView { payload in
                         showQRScanner = false
                         Task { await handleQRBootstrap(payload) }
@@ -533,10 +540,21 @@ private struct PairingPasteSheet: View {
                         showQRScanner = false
                     }
                 } else {
-                    Text("QR scanning requires iOS 16+.")
-                        .padding()
+                    AVFoundationQRScannerView { payload in
+                        showQRScanner = false
+                        Task { await handleQRBootstrap(payload) }
+                    } onCancel: {
+                        showQRScanner = false
+                    }
+                    .ignoresSafeArea()
                 }
             }
+        }
+        .onAppear {
+            errorText = nil
+            showMismatchAlert = false
+            mismatchExpected = ""
+            mismatchGot = ""
         }
     }
 

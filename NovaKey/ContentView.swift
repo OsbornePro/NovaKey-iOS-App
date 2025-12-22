@@ -109,11 +109,17 @@ struct ContentView: View {
             switch newPhase {
             case .active:
                 withAnimation { privacyCover = false }
-            case .inactive, .background:
+
+            case .inactive:
+                // Don't lock on inactive — this happens for FaceID/passcode/paste prompts.
+                break
+
+            case .background:
                 withAnimation { privacyCover = true }
                 if clipboardTimeout != .never {
                     ClipboardManager.clearNow()
                 }
+
             default:
                 break
             }
@@ -156,7 +162,9 @@ struct ContentView: View {
     @ToolbarContentBuilder
     private var topToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button { activeSheet = .listeners } label: {
+            NavigationLink {
+                ListenersView()
+            } label: {
                 Image(systemName: "antenna.radiowaves.left.and.right")
             }
             .accessibilityLabel("Listeners")
@@ -165,9 +173,11 @@ struct ContentView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("Clear Clipboard Now", role: .destructive) {
-                    ClipboardManager.clearNow()
-                    toast("Clipboard cleared")
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Task { @MainActor in
+                        ClipboardManager.clearNow()
+                        toast("Clipboard cleared")
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
                 }
                 Divider()
                 Button("Export Vault") { activeSheet = .exportVault }
@@ -286,6 +296,7 @@ struct ContentView: View {
 
     // MARK: - Actions
 
+    @MainActor
     private func toast(_ s: String) {
         withAnimation { statusToast = s }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -293,6 +304,7 @@ struct ContentView: View {
         }
     }
 
+    @MainActor
     private func deleteSecret(_ item: SecretItem) {
         KeyChainVault.shared.deleteSecret(for: item.id)
         modelContext.delete(item)
@@ -301,23 +313,37 @@ struct ContentView: View {
     }
 
     private func copySelected() async {
-        guard let item = selectedSecret else { return }
+        // Snapshot what you need on main, before awaits.
+        let snapshot: (id: UUID, name: String)?
+        let requireFresh = requireFreshBiometric
+        let timeout = clipboardTimeout
+
         do {
+            snapshot = await MainActor.run {
+                guard let item = selectedSecret else { return nil }
+                return (item.id, item.name)
+            }
+            guard let snapshot else { return }
+
+            // Keychain/biometric prompt can happen here
             let secret = try KeyChainVault.shared.readSecret(
-                for: item.id,
-                prompt: "Copy \(item.name)",
-                requireFreshBiometric: requireFreshBiometric
+                for: snapshot.id,
+                prompt: "Copy \(snapshot.name)",
+                requireFreshBiometric: requireFresh
             )
 
-            ClipboardManager.copyRawSensitive(secret, timeout: clipboardTimeout)
+            ClipboardManager.copyRawSensitive(secret, timeout: timeout)
 
-            item.lastUsedAt = .now
-            item.updatedAt = .now
-            try? modelContext.save()
-
+            // SwiftData updates MUST be on MainActor
             await MainActor.run {
+                if let item = secrets.first(where: { $0.id == snapshot.id }) {
+                    item.lastUsedAt = .now
+                    item.updatedAt = .now
+                    try? modelContext.save()
+                }
+
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                if let seconds = clipboardTimeout.seconds {
+                if let seconds = timeout.seconds {
                     toast("Copied (clears in \(Int(seconds))s)")
                 } else {
                     toast("Copied (no auto-clear)")
@@ -332,42 +358,55 @@ struct ContentView: View {
     }
 
     private func sendSelected() async {
-        guard let item = selectedSecret else { return }
-
-        guard let target = listeners.first(where: { $0.isDefault }) else {
-            await MainActor.run {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                toast("No Send Target set")
-            }
-            return
-        }
-
-        guard let pairing = PairingManager.load(host: target.host, port: target.port) else {
-            await MainActor.run {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                toast("Not paired with \(target.displayName)")
-            }
-            return
-        }
+        // Snapshot what you need on main, before awaits.
+        let secretSnapshot: (id: UUID, name: String)?
+        let targetSnapshot: (host: String, port: Int, name: String)?
+        let requireFresh = requireFreshBiometric
+        let doApprove = autoApproveBeforeSend
 
         do {
+            secretSnapshot = await MainActor.run {
+                guard let item = selectedSecret else { return nil }
+                return (item.id, item.name)
+            }
+            guard let secretSnapshot else { return }
+
+            targetSnapshot = await MainActor.run {
+                guard let target = listeners.first(where: { $0.isDefault }) else { return nil }
+                return (target.host, target.port, target.displayName)
+            }
+            guard let targetSnapshot else {
+                await MainActor.run {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    toast("No Send Target set")
+                }
+                return
+            }
+
+            guard let pairing = PairingManager.load(host: targetSnapshot.host, port: targetSnapshot.port) else {
+                await MainActor.run {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    toast("Not paired with \(targetSnapshot.name)")
+                }
+                return
+            }
+
             let secret = try KeyChainVault.shared.readSecret(
-                for: item.id,
-                prompt: "Send \(item.name) to \(target.displayName)",
-                requireFreshBiometric: requireFreshBiometric
+                for: secretSnapshot.id,
+                prompt: "Send \(secretSnapshot.name) to \(targetSnapshot.name)",
+                requireFreshBiometric: requireFresh
             )
 
             // “Two-man friendly” flow: approve -> short delay -> inject
-            if autoApproveBeforeSend {
+            if doApprove {
                 _ = try await client.sendApprove(pairing: pairing)
-                try? await Task.sleep(nanoseconds: 250_000_000) // 250ms
+                try? await Task.sleep(nanoseconds: 250_000_000)
             }
 
             do {
                 _ = try await client.sendInject(secret: secret, pairing: pairing)
             } catch {
-                // One retry: approve then inject again (covers “approve window” misses)
-                if autoApproveBeforeSend {
+                if doApprove {
                     _ = try await client.sendApprove(pairing: pairing)
                     try? await Task.sleep(nanoseconds: 250_000_000)
                     _ = try await client.sendInject(secret: secret, pairing: pairing)
@@ -376,18 +415,22 @@ struct ContentView: View {
                 }
             }
 
-            item.lastUsedAt = .now
-            item.updatedAt = .now
-            try? modelContext.save()
-
+            // SwiftData updates MUST be on MainActor
             await MainActor.run {
+                if let item = secrets.first(where: { $0.id == secretSnapshot.id }) {
+                    item.lastUsedAt = .now
+                    item.updatedAt = .now
+                    try? modelContext.save()
+                }
+
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Sent to \(target.displayName)")
+                toast("Sent to \(targetSnapshot.name)")
             }
         } catch {
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.error)
-                toast("Send failed")
+                toast("Send failed: \(error.localizedDescription)")
+                print("Send failed:", error)
             }
         }
     }

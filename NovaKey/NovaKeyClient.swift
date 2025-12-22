@@ -2,8 +2,6 @@
 //  NovaKeyClient.swift
 //  NovaKey
 //
-//  Created by Robert Osborne on 12/21/25.
-//
 
 import Foundation
 import Network
@@ -42,6 +40,8 @@ final class NovaKeyClientV3 {
         }
     }
 
+    // MARK: - Public API
+
     func sendInject(secret: String, pairing: PairingRecord) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildFrame(pairing: pairing, innerType: .inject, payloadUTF8: secret)
         return try await sendFrame(frame, host: pairing.serverHost, port: pairing.serverPort)
@@ -52,7 +52,21 @@ final class NovaKeyClientV3 {
         return try await sendFrame(frame, host: pairing.serverHost, port: pairing.serverPort)
     }
 
+    // MARK: - Core
+
     private func sendFrame(_ frame: Data, host: String, port: Int) async throws -> ServerResponse {
+        // The Go bridge already returns: [u16 length BE][payload bytes...]
+        guard frame.count >= 2 else {
+            throw ClientError.sendFailed("internal: protocol frame too short")
+        }
+
+        // Optional sanity check (helps catch future mismatches)
+        let declared = Int(UInt16(frame[0]) << 8 | UInt16(frame[1]))
+        let actualPayload = frame.count - 2
+        if declared != actualPayload {
+            throw ClientError.sendFailed("internal: bad frame length prefix (declared \(declared), actual \(actualPayload))")
+        }
+
         guard let nwPort = NWEndpoint.Port(rawValue: UInt16(port)) else {
             throw ClientError.connectFailed("bad port")
         }
@@ -76,6 +90,7 @@ final class NovaKeyClientV3 {
 
         defer { conn.cancel() }
 
+        // Send exactly what the bridge built (already length-prefixed u16)
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             conn.send(content: frame, completion: .contentProcessed { err in
                 if let err { cont.resume(throwing: ClientError.sendFailed(err.localizedDescription)) }
@@ -97,7 +112,10 @@ final class NovaKeyClientV3 {
         let statusRaw = hdr[1]
         let msgLen = Int(UInt16(hdr[2]) << 8 | UInt16(hdr[3]))
 
-        let msgData = msgLen > 0 ? (try await receiveExact(conn, count: msgLen, timeoutSeconds: 1.5) ?? Data()) : Data()
+        let msgData = msgLen > 0
+            ? (try await receiveExact(conn, count: msgLen, timeoutSeconds: 1.5) ?? Data())
+            : Data()
+
         let msg = String(data: msgData, encoding: .utf8) ?? ""
 
         guard let status = Status(rawValue: statusRaw) else {
@@ -105,6 +123,18 @@ final class NovaKeyClientV3 {
         }
 
         return ServerResponse(status: status, message: msg)
+    }
+
+
+
+    // MARK: - Helpers
+
+    /// Prefix with u32 big-endian length (common TCP framing).
+    private static func lengthPrefixU32BE(_ data: Data) -> Data {
+        var len = UInt32(data.count).bigEndian
+        var out = Data(bytes: &len, count: 4)
+        out.append(data)
+        return out
     }
 
     private func receiveExact(_ conn: NWConnection, count: Int, timeoutSeconds: Double) async throws -> Data? {

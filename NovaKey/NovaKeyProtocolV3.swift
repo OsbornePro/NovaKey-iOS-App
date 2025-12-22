@@ -17,6 +17,7 @@ enum NovaKeyProtocolV3 {
         case missingPairingFields
         case invalidDeviceKeyLength(actual: Int)
         case goBridge(String)
+        case emptyFrameReturned
 
         var errorDescription: String? {
             switch self {
@@ -26,11 +27,12 @@ enum NovaKeyProtocolV3 {
                 return "Device key must be 32 bytes (got \(actual))"
             case .goBridge(let s):
                 return "Go bridge failed: \(s)"
+            case .emptyFrameReturned:
+                return "Go bridge returned an empty frame"
             }
         }
     }
 
-    // Keep the existing API so this file is a drop-in replacement.
     static func buildFrame(
         pairing: PairingRecord,
         innerType: InnerMsgType,
@@ -51,7 +53,10 @@ enum NovaKeyProtocolV3 {
         guard let nsData = NovakeykemBuildApproveFrame(pairingBlobJSON, &err) else {
             throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
-        return nsData as Data
+
+        let data = nsData as Data
+        if data.isEmpty { throw ProtoError.emptyFrameReturned }
+        return data
     }
 
     static func buildInjectFrame(pairing: PairingRecord, secret: String) throws -> Data {
@@ -61,16 +66,19 @@ enum NovaKeyProtocolV3 {
         guard let nsData = NovakeykemBuildInjectFrame(pairingBlobJSON, secret, &err) else {
             throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
-        return nsData as Data
+
+        let data = nsData as Data
+        if data.isEmpty { throw ProtoError.emptyFrameReturned }
+        return data
     }
 }
 
-// MARK: - Pairing blob JSON (must match PROTOCOL.md)
+// MARK: - Pairing blob JSON (must match the daemon)
 
 private extension PairingRecord {
 
-    // PROTOCOL.md pairing blob:
-    // { v, device_id, device_key_hex, server_addr, server_kyber768_pub }
+    // Must match daemon pairing blob:
+    // { v:3, device_id, device_key_hex, server_addr, server_kyber768_pub }
     func toProtocolPairingBlobJSON() throws -> String {
 
         struct PairingBlob: Codable {
@@ -81,7 +89,6 @@ private extension PairingRecord {
             let server_kyber768_pub: String
         }
 
-        // From your PairingPasteSheet usage:
         let deviceID = self.deviceID
         let serverAddr = "\(self.serverHost):\(self.serverPort)"
         let serverPubB64 = self.serverPubB64
@@ -97,7 +104,7 @@ private extension PairingRecord {
         let keyHex = deviceKey.map { String(format: "%02x", $0) }.joined()
 
         let blob = PairingBlob(
-            v: 3,
+            v: 3, // ✅ IMPORTANT: your daemon uses v=3
             device_id: deviceID,
             device_key_hex: keyHex,
             server_addr: serverAddr,
@@ -105,12 +112,9 @@ private extension PairingRecord {
         )
 
         let data = try JSONEncoder().encode(blob)
-
         guard let json = String(data: data, encoding: .utf8) else {
             throw NovaKeyProtocolV3.ProtoError.goBridge("JSON encoding failed")
         }
-
-        // Encoder produces valid ASCII quotes; trimming is fine.
         return json.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

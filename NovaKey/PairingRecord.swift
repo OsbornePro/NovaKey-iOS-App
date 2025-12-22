@@ -8,14 +8,16 @@
 import Foundation
 import Security
 
+// Expected nvpair blob (what PairingPasteSheet generates via makePairingJSON)
 struct PairingBlob: Codable {
     let v: Int
     let device_id: String
     let device_key_hex: String
-    let server_addr: String
-    let server_kyber768_pub: String
+    let server_addr: String          // "host:port"
+    let server_kyber768_pub: String  // base64
 }
 
+// Stored record
 struct PairingRecord: Codable {
     let deviceID: String
     let deviceKey: Data          // 32 bytes
@@ -34,7 +36,7 @@ enum PairingErrors: Error, LocalizedError {
         switch self {
         case .invalidJSON: return "Invalid pairing JSON"
         case .invalidHex: return "Invalid device_key_hex"
-        case .invalidServerAddr: return "Invalid server_addr"
+        case .invalidServerAddr: return "Invalid server address"
         case .invalidDeviceKeyLength: return "device_key_hex must be 32 bytes"
         }
     }
@@ -43,30 +45,70 @@ enum PairingErrors: Error, LocalizedError {
 enum PairingManager {
     private static let service = "com.novakey.pairing.v3"
 
+    /// Accepts either:
+    /// 1) nvpair blob:
+    ///    { v, device_id, device_key_hex, server_addr, server_kyber768_pub }
+    ///
+    /// 2) alternate manual blob:
+    ///    { server_url, device_id, device_key_hex, kyber768_public }  (or server_kyber768_pub)
     static func parsePairingJSON(_ json: String) throws -> PairingRecord {
         guard let data = json.data(using: .utf8) else { throw PairingErrors.invalidJSON }
-        let blob: PairingBlob
-        do {
-            blob = try JSONDecoder().decode(PairingBlob.self, from: data)
-        } catch {
+
+        // --- Format 1: canonical nvpair blob ---
+        if let blob = try? JSONDecoder().decode(PairingBlob.self, from: data) {
+            let (host, port) = try parseHostPort(blob.server_addr)
+
+            guard let keyBytes = Data(hexString: blob.device_key_hex) else {
+                throw PairingErrors.invalidHex
+            }
+            guard keyBytes.count == 32 else {
+                throw PairingErrors.invalidDeviceKeyLength
+            }
+
+            return PairingRecord(
+                deviceID: blob.device_id,
+                deviceKey: keyBytes,
+                serverHost: host,
+                serverPort: port,
+                serverPubB64: blob.server_kyber768_pub
+            )
+        }
+
+        // --- Format 2: manual blob (server_url + key + pub) ---
+        struct AltBlob: Decodable {
+            let server_url: String
+            let device_id: String
+            let device_key_hex: String
+            let kyber768_public: String?
+            let server_kyber768_pub: String?
+        }
+
+        guard let alt = try? JSONDecoder().decode(AltBlob.self, from: data) else {
             throw PairingErrors.invalidJSON
         }
 
-        let (host, port) = try parseHostPort(blob.server_addr)
+        guard let url = URL(string: alt.server_url),
+              let host = url.host,
+              let port = url.port else {
+            throw PairingErrors.invalidServerAddr
+        }
 
-        guard let keyBytes = Data(hexString: blob.device_key_hex) else {
+        guard let keyBytes = Data(hexString: alt.device_key_hex) else {
             throw PairingErrors.invalidHex
         }
         guard keyBytes.count == 32 else {
             throw PairingErrors.invalidDeviceKeyLength
         }
 
+        let pub = alt.server_kyber768_pub ?? alt.kyber768_public ?? ""
+        guard !pub.isEmpty else { throw PairingErrors.invalidJSON }
+
         return PairingRecord(
-            deviceID: blob.device_id,
+            deviceID: alt.device_id,
             deviceKey: keyBytes,
             serverHost: host,
             serverPort: port,
-            serverPubB64: blob.server_kyber768_pub
+            serverPubB64: pub
         )
     }
 
@@ -116,9 +158,12 @@ enum PairingManager {
     }
 
     private static func parseHostPort(_ s: String) throws -> (String, Int) {
+        // Accept "host:port"
         let parts = s.split(separator: ":")
         guard parts.count == 2, let port = Int(parts[1]) else { throw PairingErrors.invalidServerAddr }
-        return (String(parts[0]), port)
+        let host = String(parts[0])
+        guard !host.isEmpty, port > 0 else { throw PairingErrors.invalidServerAddr }
+        return (host, port)
     }
 }
 
@@ -127,6 +172,7 @@ extension Data {
     init?(hexString: String) {
         let s = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard s.count % 2 == 0 else { return nil }
+
         var out = Data()
         out.reserveCapacity(s.count / 2)
 
@@ -142,15 +188,3 @@ extension Data {
     }
 }
 
-func pairingJSON(from qr: PairQR, serverHost: String) throws -> String {
-    let blob = PairingBlob(
-        v: 3,
-        device_id: qr.device_id,
-        device_key_hex: qr.device_key_hex,
-        server_addr: "\(serverHost):\(qr.listen_port)",
-        server_kyber768_pub: qr.server_kyber_pub_b64
-    )
-
-    let data = try JSONEncoder().encode(blob)
-    return String(decoding: data, as: UTF8.self)
-}
