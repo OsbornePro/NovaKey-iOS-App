@@ -24,7 +24,8 @@ struct ListenersView: View {
     @Query(sort: \PairedListener.displayName) private var listeners: [PairedListener]
 
     // Multi-select delete
-    @State private var selectedIDs = Set<UUID>()
+    @State private var selectedIDs = Set<PairedListener.ID>()
+
     @State private var showBulkDeleteConfirm = false
 
     // Add listener form
@@ -45,7 +46,7 @@ struct ListenersView: View {
 
     var body: some View {
         NavigationStack {
-            List(selection: $selectedIDs) {
+            SwiftUI.List(selection: $selectedIDs) {
 
                 Section("Paired Listeners") {
                     if listeners.isEmpty {
@@ -378,7 +379,7 @@ private struct PairingPasteSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            SwiftUI.Form {
                 Section("Pairing JSON (from nvpair)") {
                     TextEditor(text: $jsonText)
                         .font(.system(.footnote, design: .monospaced))

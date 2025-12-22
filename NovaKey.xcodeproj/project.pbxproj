@@ -30,6 +30,7 @@
 		B94715F82EF8ABE40011D282 /* PairingRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F72EF8ABE40011D282 /* PairingRecord.swift */; };
 		B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */; };
 		B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = B94715FB2EF8C1C90011D282 /* Sodium */; };
+		B94715FE2EF8CB9B0011D282 /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 		B94715F42EF8AA700011D282 /* NovaKeyWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyWire.swift; sourceTree = "<group>"; };
 		B94715F72EF8ABE40011D282 /* PairingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingRecord.swift; sourceTree = "<group>"; };
 		B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyProtocolV3.swift; sourceTree = "<group>"; };
+		B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = ../NovaKeyKEMBridge/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,6 +85,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */,
+				B94715FE2EF8CB9B0011D282 /* NovaKeyKEM.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +109,7 @@
 		B947159F2EF354300011D282 = {
 			isa = PBXGroup;
 			children = (
+				B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */,
 				B94715AA2EF354310011D282 /* NovaKey */,
 				B94715C02EF354350011D282 /* NovaKeyTests */,
 				B94715CA2EF354350011D282 /* NovaKeyUITests */,
