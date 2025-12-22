@@ -17,7 +17,7 @@ struct ContentView: View {
     @Query private var listeners: [PairedListener]
 
     private enum ActiveSheet: String, Identifiable {
-        case add, listeners, settings, exportVault, importVault
+        case add, listeners, settings, exportVault, importVault, about, help
         var id: String { rawValue }
     }
 
@@ -86,6 +86,10 @@ struct ContentView: View {
                 }
                 .sheet(item: $activeSheet) { sheet in
                     switch sheet {
+                    case .about:
+                        AboutView()
+                    case .help:
+                        HelpView()
                     case .add:
                         AddSecretView()
                     case .listeners:
@@ -160,18 +164,18 @@ struct ContentView: View {
 
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Button("Settings") { activeSheet = .settings }
-
                 Button("Clear Clipboard Now", role: .destructive) {
                     ClipboardManager.clearNow()
                     toast("Clipboard cleared")
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
-
                 Divider()
-
                 Button("Export Vault") { activeSheet = .exportVault }
                 Button("Import Vault") { activeSheet = .importVault }
+                Divider()
+                Button("Settings") { activeSheet = .settings }
+                Button("Help") { activeSheet = .help }
+                Button("About") { activeSheet = .about }
             } label: {
                 Image(systemName: "gearshape.fill")
             }

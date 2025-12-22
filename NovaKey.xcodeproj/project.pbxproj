@@ -31,6 +31,10 @@
 		B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */; };
 		B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = B94715FB2EF8C1C90011D282 /* Sodium */; };
 		B94715FE2EF8CB9B0011D282 /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */; };
+		B94716002EF926940011D282 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715FF2EF926940011D282 /* QRScannerView.swift */; };
+		B94716022EF9A7AE0011D282 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716012EF9A7AE0011D282 /* AboutView.swift */; };
+		B94716042EF9A7C50011D282 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716032EF9A7C50011D282 /* HelpView.swift */; };
+		B94716062EF9BE400011D282 /* PairQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716052EF9BE400011D282 /* PairQR.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +81,11 @@
 		B94715F72EF8ABE40011D282 /* PairingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingRecord.swift; sourceTree = "<group>"; };
 		B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyProtocolV3.swift; sourceTree = "<group>"; };
 		B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = ../NovaKeyKEMBridge/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
+		B94715FF2EF926940011D282 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		B94716012EF9A7AE0011D282 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		B94716032EF9A7C50011D282 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		B94716052EF9BE400011D282 /* PairQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQR.swift; sourceTree = "<group>"; };
+		B94716072EF9CAEF0011D282 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +139,7 @@
 		B94715AA2EF354310011D282 /* NovaKey */ = {
 			isa = PBXGroup;
 			children = (
+				B94716072EF9CAEF0011D282 /* Info.plist */,
 				B94715AB2EF354310011D282 /* NovaKeyApp.swift */,
 				B94715DC2EF733A40011D282 /* ListenersView.swift */,
 				B94715AD2EF354310011D282 /* ContentView.swift */,
@@ -149,6 +159,10 @@
 				B94715F42EF8AA700011D282 /* NovaKeyWire.swift */,
 				B94715F72EF8ABE40011D282 /* PairingRecord.swift */,
 				B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */,
+				B94715FF2EF926940011D282 /* QRScannerView.swift */,
+				B94716012EF9A7AE0011D282 /* AboutView.swift */,
+				B94716032EF9A7C50011D282 /* HelpView.swift */,
+				B94716052EF9BE400011D282 /* PairQR.swift */,
 			);
 			path = NovaKey;
 			sourceTree = "<group>";
@@ -318,6 +332,7 @@
 				B94715F12EF8A2310011D282 /* VaultTransferViews.swift in Sources */,
 				B94715DD2EF733A40011D282 /* ListenersView.swift in Sources */,
 				B94715E92EF8919D0011D282 /* ClipboardManager.swift in Sources */,
+				B94716002EF926940011D282 /* QRScannerView.swift in Sources */,
 				B94715E12EF733F70011D282 /* NovaKeyClient.swift in Sources */,
 				B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */,
 				B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */,
@@ -326,9 +341,12 @@
 				B94715E52EF734340011D282 /* KeyChainVault.swift in Sources */,
 				B94715F52EF8AA700011D282 /* NovaKeyWire.swift in Sources */,
 				B94715EF2EF8A20C0011D282 /* VaultTransfer.swift in Sources */,
+				B94716042EF9A7C50011D282 /* HelpView.swift in Sources */,
 				B94715AE2EF354310011D282 /* ContentView.swift in Sources */,
 				B94715EB2EF892500011D282 /* SettingsView.swift in Sources */,
 				B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */,
+				B94716022EF9A7AE0011D282 /* AboutView.swift in Sources */,
+				B94716062EF9BE400011D282 /* PairQR.swift in Sources */,
 				B94715ED2EF89A240011D282 /* AppearanceMode.swift in Sources */,
 				B94715F32EF8A5830011D282 /* VaultTransferEntryViews.swift in Sources */,
 			);
@@ -497,11 +515,14 @@
 				DEVELOPMENT_TEAM = 8G5577USG6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NovaKey/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan QR codes to pair NovaKey with your computer.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs local network access to pair with your computer.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -526,11 +547,14 @@
 				DEVELOPMENT_TEAM = 8G5577USG6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NovaKey/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan QR codes to pair NovaKey with your computer.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs local network access to pair with your computer.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

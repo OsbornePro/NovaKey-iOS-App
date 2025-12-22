@@ -134,7 +134,7 @@ final class NovaKeyClientV3 {
 
     private func receiveOnce(_ conn: NWConnection, maximum: Int) async throws -> Data {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
-            conn.receive(minimumIncompleteLength: 1, maximumLength: max(1, maximum)) { data, _, isComplete, error in
+            conn.receive(minimumIncompleteLength: 1, maximumLength: Swift.max(1, maximum)) { data, _, isComplete, error in
                 if let error { cont.resume(throwing: error); return }
                 if isComplete && (data == nil || data?.isEmpty == true) { cont.resume(returning: Data()); return }
                 cont.resume(returning: data ?? Data())

@@ -97,7 +97,7 @@ private extension PairingRecord {
         let keyHex = deviceKey.map { String(format: "%02x", $0) }.joined()
 
         let blob = PairingBlob(
-            v: 1,
+            v: 3,
             device_id: deviceID,
             device_key_hex: keyHex,
             server_addr: serverAddr,

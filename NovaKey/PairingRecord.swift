@@ -141,3 +141,16 @@ extension Data {
         self = out
     }
 }
+
+func pairingJSON(from qr: PairQR, serverHost: String) throws -> String {
+    let blob = PairingBlob(
+        v: 3,
+        device_id: qr.device_id,
+        device_key_hex: qr.device_key_hex,
+        server_addr: "\(serverHost):\(qr.listen_port)",
+        server_kyber768_pub: qr.server_kyber_pub_b64
+    )
+
+    let data = try JSONEncoder().encode(blob)
+    return String(decoding: data, as: UTF8.self)
+}

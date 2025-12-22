@@ -11,7 +11,6 @@ import UIKit
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // Store raw values in AppStorage for stable persistence
     @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
     @AppStorage("requireFreshBiometric") private var requireFreshBiometric: Bool = true
@@ -23,18 +22,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Appearance
-                Section {
+                Section("Appearance") {
                     Picker("Theme", selection: $appearanceModeRaw) {
                         ForEach(AppearanceMode.allCases) { mode in
                             Text(mode.label).tag(mode.rawValue)
                         }
                     }
-                } header: {
-                    Text("Appearance")
                 }
 
-                // Clipboard
                 Section {
                     Picker("Auto-clear", selection: $clipboardTimeoutRaw) {
                         ForEach(ClipboardTimeout.allCases) { t in
@@ -46,7 +41,6 @@ struct SettingsView: View {
                         ClipboardManager.clearNow()
                     }
                     .disabled(!hasClipboardContent)
-
                 } header: {
                     Text("Clipboard")
                 } footer: {
@@ -56,11 +50,22 @@ struct SettingsView: View {
                          : "Clipboard will auto-clear after the selected time and may also clear when the app backgrounds.")
                 }
 
-                // Security
-                Section {
+                Section("Security") {
                     Toggle("Require Face ID every time", isOn: $requireFreshBiometric)
-                } header: {
-                    Text("Security")
+                }
+
+                Section("Support") {
+                    NavigationLink {
+                        HelpView()
+                    } label: {
+                        Label("Help", systemImage: "questionmark.circle")
+                    }
+
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About", systemImage: "info.circle")
+                    }
                 }
             }
             .navigationTitle("Settings")

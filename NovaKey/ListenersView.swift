@@ -2,6 +2,8 @@
 //  ListenersView.swift
 //  NovaKey
 //
+//  Created by Robert Osborne on 12/21/25.
+//
 
 import SwiftUI
 import SwiftData
@@ -17,17 +19,22 @@ struct ListenersView: View {
     @State private var name = ""
     @State private var host = ""
     @State private var portText = "60768"
+    @State private var notes = ""
     @State private var makeSendTarget = false
 
     // Pairing sheet
     @State private var pairingFor: PairedListener?
     @State private var showPairingSheet = false
 
+    // Edit sheet (name + notes only)
+    @State private var editing: PairedListener?
+    @State private var editNameText: String = ""
+    @State private var editNotesText: String = ""
+    @State private var showEditSheet = false
+
     // Toast
     @State private var toastText: String?
     @State private var showToast = false
-
-    private let client = NovaKeyClientV3()
 
     var body: some View {
         NavigationStack {
@@ -40,7 +47,7 @@ struct ListenersView: View {
                                 .foregroundStyle(.secondary)
                             Text("No listeners")
                                 .font(.headline)
-                            Text("Add a listener below, then pair it using the nvpair JSON blob.")
+                            Text("Add a listener below, then pair it using the nvpair JSON blob (or scan the daemon QR).")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -69,12 +76,15 @@ struct ListenersView: View {
                     TextField("Port", text: $portText)
                         .keyboardType(.numberPad)
 
+                    TextField("Notes (optional)", text: $notes)
+                        .textInputAutocapitalization(.words)
+
                     Toggle("Make Send Target", isOn: $makeSendTarget)
 
                     Button("Add") { addListener() }
                         .disabled(
-                            name.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty ||
-                            host.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty ||
+                            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                            host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
                             Int(portText) == nil
                         )
                 } header: {
@@ -91,7 +101,9 @@ struct ListenersView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showPairingSheet) {
+
+            // Pairing JSON paste sheet (NOW always tied to a listener)
+            .sheet(isPresented: $showPairingSheet, onDismiss: { pairingFor = nil }) {
                 if let l = pairingFor {
                     PairingPasteSheet(listener: l) { result in
                         switch result {
@@ -110,6 +122,20 @@ struct ListenersView: View {
                         .padding()
                 }
             }
+
+            // Edit sheet (safe: name + notes only)
+            .sheet(isPresented: $showEditSheet) {
+                EditListenerSheet(
+                    title: "Edit Listener",
+                    initialName: editNameText,
+                    initialNotes: editNotesText
+                ) { newName, newNotes in
+                    saveEdits(newName: newName, newNotes: newNotes)
+                } onCancel: {
+                    editing = nil
+                }
+            }
+
             .overlay(alignment: .bottom) {
                 if showToast, let toastText {
                     Text(toastText)
@@ -128,9 +154,9 @@ struct ListenersView: View {
 
     private func listenerRow(_ l: PairedListener) -> some View {
         let isPaired = (PairingManager.load(host: l.host, port: l.port) != nil)
+        let notesTrimmed = l.notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return Button {
-            // When editing, don't hijack taps.
             if editMode?.wrappedValue.isEditing == true { return }
             setSendTarget(l)
         } label: {
@@ -150,9 +176,17 @@ struct ListenersView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
                     Text(l.host + ":" + String(l.port))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    if !notesTrimmed.isEmpty {
+                        Text(notesTrimmed)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
 
                 Spacer()
@@ -172,14 +206,10 @@ struct ListenersView: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button("Set as Send Target") { setSendTarget(l) }
+            Button("Edit") { beginEdit(l) }
 
-            Button(isPaired ? "Update Pairing" : "Pair") {
-                pairingFor = l
-                showPairingSheet = true
-            }
-
-            Button("Approve (two-man mode)") {
-                Task { await approve(for: l) }
+            Button(isPaired ? "Re-pair" : "Pair") {
+                presentPairSheet(for: l)
             }
 
             Divider()
@@ -193,10 +223,9 @@ struct ListenersView: View {
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             Button {
-                pairingFor = l
-                showPairingSheet = true
+                presentPairSheet(for: l)
             } label: {
-                Label(isPaired ? "Update" : "Pair", systemImage: "qrcode")
+                Label(isPaired ? "Re-pair" : "Pair", systemImage: "qrcode")
             }
 
             Button {
@@ -205,6 +234,41 @@ struct ListenersView: View {
                 Label("Send Target", systemImage: "paperplane.fill")
             }
         }
+    }
+
+    private func presentPairSheet(for l: PairedListener) {
+        // Ensure listener is set BEFORE presenting sheet
+        pairingFor = l
+        showPairingSheet = true
+    }
+
+    // MARK: - Edit (name + notes only)
+
+    private func beginEdit(_ listener: PairedListener) {
+        editing = listener
+        editNameText = listener.displayName
+        editNotesText = listener.notes
+        showEditSheet = true
+    }
+
+    private func saveEdits(newName: String, newNotes: String) {
+        defer {
+            editing = nil
+            showEditSheet = false
+        }
+
+        let nameTrimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nameTrimmed.isEmpty else {
+            toast("Name can’t be empty")
+            return
+        }
+
+        guard let l = editing else { return }
+        l.displayName = nameTrimmed
+        l.notes = newNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        try? modelContext.save()
+        toast("Saved")
     }
 
     // MARK: - Send Target
@@ -223,10 +287,11 @@ struct ListenersView: View {
         guard let port = Int(portText) else { return }
 
         let new = PairedListener(
-            displayName: name.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
-            host: host.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+            displayName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            host: host.trimmingCharacters(in: .whitespacesAndNewlines),
             port: port,
-            isDefault: makeSendTarget
+            isDefault: makeSendTarget,
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
         if makeSendTarget {
@@ -241,6 +306,7 @@ struct ListenersView: View {
         name = ""
         host = ""
         portText = "60768"
+        notes = ""
         makeSendTarget = false
         toast("Listener added")
     }
@@ -274,22 +340,6 @@ struct ListenersView: View {
         }
     }
 
-    // MARK: - Approve
-
-    private func approve(for listener: PairedListener) async {
-        guard let pairing = PairingManager.load(host: listener.host, port: listener.port) else {
-            await MainActor.run { toast("Not paired with \(listener.displayName)") }
-            return
-        }
-
-        do {
-            _ = try await client.sendApprove(pairing: pairing)
-            await MainActor.run { toast("Approved: \(listener.displayName)") }
-        } catch {
-            await MainActor.run { toast("Approve failed") }
-        }
-    }
-
     // MARK: - Toast
 
     private func toast(_ s: String) {
@@ -306,7 +356,85 @@ struct ListenersView: View {
     }
 }
 
-// MARK: - Pairing paste sheet
+// MARK: - Edit sheet
+
+private struct EditListenerSheet: View {
+    let title: String
+    let initialName: String
+    let initialNotes: String
+    let onSave: (String, String) -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+
+    @State private var name: String
+    @State private var notes: String
+
+    init(
+        title: String,
+        initialName: String,
+        initialNotes: String,
+        onSave: @escaping (String, String) -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.title = title
+        self.initialName = initialName
+        self.initialNotes = initialNotes
+        self.onSave = onSave
+        self.onCancel = onCancel
+        _name = State(initialValue: initialName)
+        _notes = State(initialValue: initialNotes)
+    }
+
+    var body: some View {
+        NavigationStack {
+            SwiftUI.Form {
+                SwiftUI.Section {
+                    TextField("Name", text: $name)
+                        .textInputAutocapitalization(.words)
+                        .focused($focused)
+                } header: {
+                    Text("Name")
+                }
+
+                SwiftUI.Section {
+                    TextEditor(text: $notes)
+                        .frame(minHeight: 100)
+                        .textInputAutocapitalization(.sentences)
+                } header: {
+                    Text("Notes (optional)")
+                } footer: {
+                    Text("Notes are local only. Pairing/security settings are unchanged.")
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                        onCancel()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        dismiss()
+                        onSave(name, notes)
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    focused = true
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Pairing paste sheet (Scan QR -> fetch /pair/bootstrap -> save -> /pair/complete)
 
 private struct PairingPasteSheet: View {
     enum Result {
@@ -328,35 +456,52 @@ private struct PairingPasteSheet: View {
     @State private var mismatchExpected = ""
     @State private var mismatchGot = ""
 
+    // QR scanner
+    @State private var showQRScanner = false
+
     var body: some View {
         NavigationStack {
-            SwiftUI.Form {
-                SwiftUI.Section {
-                    TextEditor(text: $jsonText)
-                        .font(.system(.footnote, design: .monospaced))
-                        .frame(minHeight: 260)                 // a bit taller
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .focused($editorFocused)
-                        .scrollContentBackground(.hidden)      // nicer on iOS 16+
-                } header: {
-                    Text("Pairing JSON (from nvpair)")
-                } footer: {
-                    Text("Paste the pairing blob JSON. Treat it as a secret.")
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Pairing JSON")
+                    .font(.headline)
+                    .padding(.top, 8)
+
+                Text("Paste the pairing JSON (nvpair), or scan the daemon QR code.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if #available(iOS 16.0, *) {
+                    Button {
+                        errorText = nil
+                        showQRScanner = true
+                    } label: {
+                        Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
 
+                TextEditor(text: $jsonText)
+                    .font(.system(.footnote, design: .monospaced))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($editorFocused)
+                    .frame(minHeight: 280)
+                    .padding(10)
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                 if let errorText {
-                    SwiftUI.Section {
-                        Text(errorText)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
-                    }
+                    Text(errorText)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
                 }
+
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 16)
             .navigationTitle("Pair \(listener.displayName)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Always reachable buttons (NOT covered by keyboard)
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
@@ -365,11 +510,10 @@ private struct PairingPasteSheet: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(jsonText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty)
+                    Button("Save") { saveManual() }
+                        .disabled(jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
-                // Keyboard toolbar to dismiss keyboard
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { editorFocused = false }
@@ -378,12 +522,67 @@ private struct PairingPasteSheet: View {
             .alert("Server address mismatch", isPresented: $showMismatchAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Listener is \(mismatchExpected) but pairing blob is \(mismatchGot).\n\nCreate/update a listener that matches the pairing blob’s server_addr, then pair again.")
+                Text("Listener is \(mismatchExpected) but pairing blob is \(mismatchGot).\n\nCreate/update a listener that matches, then pair again.")
+            }
+            .sheet(isPresented: $showQRScanner) {
+                if #available(iOS 16.0, *) {
+                    QRScannerView { payload in
+                        showQRScanner = false
+                        Task { await handleQRBootstrap(payload) }
+                    } onCancel: {
+                        showQRScanner = false
+                    }
+                } else {
+                    Text("QR scanning requires iOS 16+.")
+                        .padding()
+                }
             }
         }
     }
 
-    private func save() {
+    @MainActor
+    private func handleQRBootstrap(_ payload: String) async {
+        errorText = nil
+
+        do {
+            // 1) Parse small QR (novakey://pair?v=2&host&port&token)
+            let link = try decodeNovaKeyPairQRLink(payload)
+
+            // 2) Fetch big blob from daemon
+            let bootstrap = try await fetchPairBootstrap(link)
+
+            // 3) Convert to JSON your PairingManager expects
+            let json = try makePairingJSON(from: bootstrap)
+
+            // Show it in the editor (nice for transparency/debug)
+            jsonText = json
+
+            // 4) Validate + save locally
+            let record = try PairingManager.parsePairingJSON(json)
+            let expected = "\(listener.host):\(listener.port)"
+            let got = "\(record.serverHost):\(record.serverPort)"
+
+            guard expected == got else {
+                mismatchExpected = expected
+                mismatchGot = got
+                showMismatchAlert = true
+                onDone(.mismatch(expected: expected, got: got))
+                return
+            }
+
+            try PairingManager.save(record)
+
+            // 5) Tell daemon to finalize devices.json + reload
+            try await postPairComplete(link)
+
+            dismiss()
+            onDone(.saved)
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    private func saveManual() {
         do {
             let record = try PairingManager.parsePairingJSON(jsonText)
 

@@ -17,35 +17,41 @@ struct NovaKeyApp: App {
     @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     private var appearanceMode: AppearanceMode { AppearanceMode(rawValue: appearanceModeRaw) ?? .system }
 
-    // Clipboard (optional: clear on background unless Never)
+    // Clipboard
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
     private var clipboardTimeout: ClipboardTimeout { ClipboardTimeout(rawValue: clipboardTimeoutRaw) ?? .s60 }
 
     @StateObject private var appLock = AppLock()
+
+    // Force a fresh SwiftData store (bump name whenever you change models during dev)
+    private let container: ModelContainer = {
+        let schema = Schema([SecretItem.self, PairedListener.self, LocalAccount.self])
+
+        // Change this string again if you do more schema churn later.
+        let config = ModelConfiguration("NovaKeyStore_v3", schema: schema)
+
+        do {
+            return try ModelContainer(for: schema, configurations: [config])
+        } catch {
+            fatalError("SwiftData container init failed: \(error)")
+        }
+    }()
 
     var body: some Scene {
         WindowGroup {
             AppGateView()
                 .environmentObject(appLock)
                 .preferredColorScheme(appearanceMode.colorScheme)
-                .task {
-                    // Try to unlock on cold launch
-                    await appLock.unlockIfNeeded()
-                }
+                .task { await appLock.unlockIfNeeded() }
         }
-        // Keep LocalAccount in container to avoid SwiftData migration headaches.
-        // You can remove it later if you reset the store (delete the app from simulator/device).
-        .modelContainer(for: [SecretItem.self, PairedListener.self, LocalAccount.self])
+        .modelContainer(container)
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
                 Task { await appLock.unlockIfNeeded() }
 
             case .inactive, .background:
-                // Lock immediately when leaving the app
                 appLock.lock()
-
-                // Optional: clear clipboard when backgrounding unless Never
                 if clipboardTimeout != .never {
                     ClipboardManager.clearNow()
                 }
@@ -77,16 +83,13 @@ private struct LockedView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
             VStack(spacing: 14) {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 34, weight: .semibold))
                 Text("NovaKey Locked")
                     .font(.headline)
 
-                Button {
-                    unlockAction()
-                } label: {
+                Button { unlockAction() } label: {
                     Label("Unlock with Face ID", systemImage: "faceid")
                         .font(.headline)
                         .padding(.horizontal, 16)
@@ -103,9 +106,7 @@ private struct LockedView: View {
 final class AppLock: ObservableObject {
     @Published var isUnlocked: Bool = false
 
-    func lock() {
-        isUnlocked = false
-    }
+    func lock() { isUnlocked = false }
 
     func unlockIfNeeded(forcePrompt: Bool = false) async {
         if isUnlocked && !forcePrompt { return }
@@ -114,22 +115,16 @@ final class AppLock: ObservableObject {
 
     private func unlock(forcePrompt: Bool) async -> Bool {
         let context = LAContext()
-        context.interactionNotAllowed = false
-
         var error: NSError?
-        let policy: LAPolicy = .deviceOwnerAuthentication // Face ID with passcode fallback (recommended)
+        let policy: LAPolicy = .deviceOwnerAuthentication
 
         guard context.canEvaluatePolicy(policy, error: &error) else {
-            // If device has no biometrics/passcode configured, fail closed (stay locked)
             isUnlocked = false
             return false
         }
 
         do {
-            let ok = try await context.evaluatePolicy(
-                policy,
-                localizedReason: "Unlock NovaKey"
-            )
+            let ok = try await context.evaluatePolicy(policy, localizedReason: "Unlock NovaKey")
             isUnlocked = ok
             return ok
         } catch {

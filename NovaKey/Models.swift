@@ -25,25 +25,29 @@ final class SecretItem {
 
 @Model
 final class PairedListener {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var displayName: String
     var host: String
     var port: Int
     var isDefault: Bool
 
-    init(displayName: String, host: String, port: Int, isDefault: Bool = false) {
+    // NEW
+    var notes: String
+
+    init(displayName: String, host: String, port: Int, isDefault: Bool, notes: String = "") {
         self.id = UUID()
         self.displayName = displayName
         self.host = host
         self.port = port
         self.isDefault = isDefault
+        self.notes = notes
     }
 }
 
 @Model
 final class LocalAccount {
     @Attribute(.unique) var id: UUID
-    var provider: String          // "google" | "microsoft"
+    var provider: String
     var displayName: String
     var email: String
     var signedInAt: Date
