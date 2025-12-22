@@ -11,11 +11,25 @@
 		B94715AE2EF354310011D282 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AD2EF354310011D282 /* ContentView.swift */; };
 		B94715B02EF354340011D282 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715AF2EF354340011D282 /* Assets.xcassets */; };
 		B94715B32EF354340011D282 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715B22EF354340011D282 /* Preview Assets.xcassets */; };
-		B94715B52EF354340011D282 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715B42EF354340011D282 /* Persistence.swift */; };
 		B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */; };
 		B94715C22EF354350011D282 /* NovaKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715C12EF354350011D282 /* NovaKeyTests.swift */; };
 		B94715CC2EF354350011D282 /* NovaKeyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CB2EF354350011D282 /* NovaKeyUITests.swift */; };
 		B94715CE2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */; };
+		B94715DD2EF733A40011D282 /* ListenersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715DC2EF733A40011D282 /* ListenersView.swift */; };
+		B94715DF2EF733BF0011D282 /* AddSecretView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715DE2EF733BF0011D282 /* AddSecretView.swift */; };
+		B94715E12EF733F70011D282 /* NovaKeyClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715E02EF733F70011D282 /* NovaKeyClient.swift */; };
+		B94715E52EF734340011D282 /* KeyChainVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715E42EF734340011D282 /* KeyChainVault.swift */; };
+		B94715E72EF7344E0011D282 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715E62EF7344E0011D282 /* Models.swift */; };
+		B94715E92EF8919D0011D282 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715E82EF8919D0011D282 /* ClipboardManager.swift */; };
+		B94715EB2EF892500011D282 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715EA2EF892500011D282 /* SettingsView.swift */; };
+		B94715ED2EF89A240011D282 /* AppearanceMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715EC2EF89A240011D282 /* AppearanceMode.swift */; };
+		B94715EF2EF8A20C0011D282 /* VaultTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715EE2EF8A20C0011D282 /* VaultTransfer.swift */; };
+		B94715F12EF8A2310011D282 /* VaultTransferViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F02EF8A2310011D282 /* VaultTransferViews.swift */; };
+		B94715F32EF8A5830011D282 /* VaultTransferEntryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F22EF8A5830011D282 /* VaultTransferEntryViews.swift */; };
+		B94715F52EF8AA700011D282 /* NovaKeyWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F42EF8AA700011D282 /* NovaKeyWire.swift */; };
+		B94715F82EF8ABE40011D282 /* PairingRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F72EF8ABE40011D282 /* PairingRecord.swift */; };
+		B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */; };
+		B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = B94715FB2EF8C1C90011D282 /* Sodium */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,13 +55,26 @@
 		B94715AD2EF354310011D282 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B94715AF2EF354340011D282 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B94715B22EF354340011D282 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		B94715B42EF354340011D282 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		B94715B72EF354340011D282 /* NovaKey.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NovaKey.xcdatamodel; sourceTree = "<group>"; };
 		B94715BD2EF354350011D282 /* NovaKeyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NovaKeyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B94715C12EF354350011D282 /* NovaKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyTests.swift; sourceTree = "<group>"; };
 		B94715C72EF354350011D282 /* NovaKeyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NovaKeyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B94715CB2EF354350011D282 /* NovaKeyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyUITests.swift; sourceTree = "<group>"; };
 		B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		B94715DC2EF733A40011D282 /* ListenersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListenersView.swift; sourceTree = "<group>"; };
+		B94715DE2EF733BF0011D282 /* AddSecretView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSecretView.swift; sourceTree = "<group>"; };
+		B94715E02EF733F70011D282 /* NovaKeyClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyClient.swift; sourceTree = "<group>"; };
+		B94715E42EF734340011D282 /* KeyChainVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChainVault.swift; sourceTree = "<group>"; };
+		B94715E62EF7344E0011D282 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B94715E82EF8919D0011D282 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		B94715EA2EF892500011D282 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B94715EC2EF89A240011D282 /* AppearanceMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceMode.swift; sourceTree = "<group>"; };
+		B94715EE2EF8A20C0011D282 /* VaultTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultTransfer.swift; sourceTree = "<group>"; };
+		B94715F02EF8A2310011D282 /* VaultTransferViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultTransferViews.swift; sourceTree = "<group>"; };
+		B94715F22EF8A5830011D282 /* VaultTransferEntryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultTransferEntryViews.swift; sourceTree = "<group>"; };
+		B94715F42EF8AA700011D282 /* NovaKeyWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyWire.swift; sourceTree = "<group>"; };
+		B94715F72EF8ABE40011D282 /* PairingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingRecord.swift; sourceTree = "<group>"; };
+		B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyProtocolV3.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,11 +127,24 @@
 			isa = PBXGroup;
 			children = (
 				B94715AB2EF354310011D282 /* NovaKeyApp.swift */,
+				B94715DC2EF733A40011D282 /* ListenersView.swift */,
 				B94715AD2EF354310011D282 /* ContentView.swift */,
 				B94715AF2EF354340011D282 /* Assets.xcassets */,
-				B94715B42EF354340011D282 /* Persistence.swift */,
 				B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */,
 				B94715B12EF354340011D282 /* Preview Content */,
+				B94715DE2EF733BF0011D282 /* AddSecretView.swift */,
+				B94715E02EF733F70011D282 /* NovaKeyClient.swift */,
+				B94715E42EF734340011D282 /* KeyChainVault.swift */,
+				B94715E62EF7344E0011D282 /* Models.swift */,
+				B94715E82EF8919D0011D282 /* ClipboardManager.swift */,
+				B94715EA2EF892500011D282 /* SettingsView.swift */,
+				B94715EC2EF89A240011D282 /* AppearanceMode.swift */,
+				B94715EE2EF8A20C0011D282 /* VaultTransfer.swift */,
+				B94715F02EF8A2310011D282 /* VaultTransferViews.swift */,
+				B94715F22EF8A5830011D282 /* VaultTransferEntryViews.swift */,
+				B94715F42EF8AA700011D282 /* NovaKeyWire.swift */,
+				B94715F72EF8ABE40011D282 /* PairingRecord.swift */,
+				B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */,
 			);
 			path = NovaKey;
 			sourceTree = "<group>";
@@ -149,6 +190,9 @@
 			dependencies = (
 			);
 			name = NovaKey;
+			packageProductDependencies = (
+				B94715FB2EF8C1C90011D282 /* Sodium */,
+			);
 			productName = NovaKey;
 			productReference = B94715A82EF354310011D282 /* NovaKey.app */;
 			productType = "com.apple.product-type.application";
@@ -221,6 +265,9 @@
 				Base,
 			);
 			mainGroup = B947159F2EF354300011D282;
+			packageReferences = (
+				B94715F62EF8ABD30011D282 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+			);
 			productRefGroup = B94715A92EF354310011D282 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -263,10 +310,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B94715B52EF354340011D282 /* Persistence.swift in Sources */,
+				B94715E72EF7344E0011D282 /* Models.swift in Sources */,
+				B94715F12EF8A2310011D282 /* VaultTransferViews.swift in Sources */,
+				B94715DD2EF733A40011D282 /* ListenersView.swift in Sources */,
+				B94715E92EF8919D0011D282 /* ClipboardManager.swift in Sources */,
+				B94715E12EF733F70011D282 /* NovaKeyClient.swift in Sources */,
+				B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */,
 				B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */,
+				B94715DF2EF733BF0011D282 /* AddSecretView.swift in Sources */,
+				B94715F82EF8ABE40011D282 /* PairingRecord.swift in Sources */,
+				B94715E52EF734340011D282 /* KeyChainVault.swift in Sources */,
+				B94715F52EF8AA700011D282 /* NovaKeyWire.swift in Sources */,
+				B94715EF2EF8A20C0011D282 /* VaultTransfer.swift in Sources */,
 				B94715AE2EF354310011D282 /* ContentView.swift in Sources */,
+				B94715EB2EF892500011D282 /* SettingsView.swift in Sources */,
 				B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */,
+				B94715ED2EF89A240011D282 /* AppearanceMode.swift in Sources */,
+				B94715F32EF8A5830011D282 /* VaultTransferEntryViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -596,6 +656,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B94715F62EF8ABD30011D282 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jedisct1/swift-sodium";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B94715FB2EF8C1C90011D282 /* Sodium */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B94715F62EF8ABD30011D282 /* XCRemoteSwiftPackageReference "swift-sodium" */;
+			productName = Sodium;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */ = {

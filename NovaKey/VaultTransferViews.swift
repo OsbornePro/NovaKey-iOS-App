@@ -1,0 +1,251 @@
+//
+//  VaultTransferViews.swift
+//  NovaKey
+//
+//  Created by Robert Osborne on 12/21/25.
+//
+
+import SwiftUI
+import SwiftData
+import UniformTypeIdentifiers
+
+struct VaultTransferViews: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    // Export options
+    @State private var protection: VaultProtection = .password
+    @State private var cipher: VaultCipher = .aesGcm256
+    @State private var password: String = ""
+    @State private var requireFreshBiometric: Bool = true
+
+    // UI state
+    @State private var showingExporter = false
+    @State private var showingImporter = false
+    @State private var exportData: Data?
+    @State private var importData: Data?
+    @State private var showPasswordPrompt = false
+    @State private var importPassword: String = ""
+
+    @State private var alertTitle: String = ""
+    @State private var alertMessage: String = ""
+    @State private var showAlert = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Export") {
+                    Picker("Protection", selection: $protection) {
+                        ForEach(VaultProtection.allCases) { p in
+                            Text(p.label).tag(p)
+                        }
+                    }
+
+                    Picker("Cipher", selection: $cipher) {
+                        ForEach(VaultCipher.allCases) { c in
+                            Text(c.label).tag(c)
+                        }
+                    }
+                    .disabled(protection == .none)
+
+                    if protection == .password {
+                        SecureField("Password", text: $password)
+                        SecureField("Confirm Password", text: $password) // simple; you can split if you want
+                    }
+
+                    Toggle("Require Face ID during export", isOn: $requireFreshBiometric)
+
+                    Button("Export Vault…") {
+                        doExport()
+                    }
+                }
+
+                Section("Import") {
+                    Button("Import Vault…") {
+                        showingImporter = true
+                    }
+                }
+
+                Section {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .navigationTitle("Import / Export")
+            .fileExporter(
+                isPresented: $showingExporter,
+                document: exportData.map { VaultFileDocument(data: $0) },
+                contentType: .json,
+                defaultFilename: "novakey-vault.json"
+            ) { result in
+                switch result {
+                case .success:
+                    showInfo("Export complete", "Vault file saved.")
+                case .failure(let err):
+                    showInfo("Export failed", err.localizedDescription)
+                }
+            }
+            .fileImporter(
+                isPresented: $showingImporter,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    do {
+                        let data = try Data(contentsOf: url)
+                        importData = data
+                        // Attempt import without password first; if password required we'll prompt.
+                        doImport(password: nil)
+                    } catch {
+                        showInfo("Import failed", "Could not read file.")
+                    }
+                case .failure(let err):
+                    showInfo("Import failed", err.localizedDescription)
+                }
+            }
+            .alert(alertTitle, isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
+            .sheet(isPresented: $showPasswordPrompt) {
+                NavigationStack {
+                    Form {
+                        Section("Password Required") {
+                            SecureField("Password", text: $importPassword)
+                        }
+                    }
+                    .navigationTitle("Decrypt Vault")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                importPassword = ""
+                                showPasswordPrompt = false
+                            }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Import") {
+                                let pwd = importPassword
+                                importPassword = ""
+                                showPasswordPrompt = false
+                                doImport(password: pwd)
+                            }
+                            .disabled(importPassword.isEmpty)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Export
+
+    private func doExport() {
+        // Normalize options
+        if protection == .none {
+            cipher = .none
+        } else if cipher == .none {
+            cipher = .aesGcm256
+        }
+
+        if protection == .password && password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            showInfo("Password required", "Choose a password or switch Protection to None.")
+            return
+        }
+
+        do {
+            let data = try VaultTransfer.exportVault(
+                modelContext: modelContext,
+                protection: protection,
+                cipher: cipher,
+                password: (protection == .password ? password : nil),
+                requireFreshBiometric: requireFreshBiometric
+            )
+            exportData = data
+            showingExporter = true
+        } catch {
+            showInfo("Export failed", error.localizedDescription)
+        }
+    }
+
+    // MARK: - Import
+
+    private func doImport(password: String?) {
+        guard let data = importData else { return }
+
+        do {
+            let payload = try VaultTransfer.importVault(data: data, password: password)
+
+            // Write into Keychain + SwiftData.
+            // If a secret already exists (same UUID), we overwrite the keychain value and update metadata.
+            for r in payload.secrets {
+                // Upsert model row
+                let existing = fetchSecretItem(id: r.id)
+
+                if let item = existing {
+                    item.name = r.name
+                    item.createdAt = r.createdAt
+                    item.updatedAt = r.updatedAt
+                    item.lastUsedAt = r.lastUsedAt
+                } else {
+                    let item = SecretItem(name: r.name)
+                    item.id = r.id
+                    item.createdAt = r.createdAt
+                    item.updatedAt = r.updatedAt
+                    item.lastUsedAt = r.lastUsedAt
+                    modelContext.insert(item)
+                }
+
+                // Upsert keychain
+                try KeyChainVault.shared.save(secret: r.secret, for: r.id)
+            }
+
+            try modelContext.save()
+            showInfo("Import complete", "Imported \(payload.secrets.count) secret(s).")
+
+        } catch let e as VaultTransferError {
+            if case .passwordRequired = e {
+                showPasswordPrompt = true
+            } else {
+                showInfo("Import failed", e.localizedDescription)
+            }
+        } catch {
+            showInfo("Import failed", error.localizedDescription)
+        }
+    }
+
+    private func fetchSecretItem(id: UUID) -> SecretItem? {
+        let fetch = FetchDescriptor<SecretItem>(
+            predicate: #Predicate { $0.id == id }
+        )
+        return try? modelContext.fetch(fetch).first
+    }
+
+    private func showInfo(_ title: String, _ message: String) {
+        alertTitle = title
+        alertMessage = message
+        showAlert = true
+    }
+}
+
+// MARK: - FileDocument wrapper
+
+/// Minimal FileDocument so we can use fileExporter with raw Data.
+struct VaultFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
