@@ -150,8 +150,7 @@ struct ListenersView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-
-                    Text("\(l.host):\(l.port)")
+                    Text(l.host + ":" + String(l.port))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -284,7 +283,7 @@ struct ListenersView: View {
         }
 
         do {
-            try await client.sendApprove(pairing: pairing)
+            _ = try await client.sendApprove(pairing: pairing)
             await MainActor.run { toast("Approved: \(listener.displayName)") }
         } catch {
             await MainActor.run { toast("Approve failed") }
@@ -321,6 +320,7 @@ private struct PairingPasteSheet: View {
     let onDone: (Result) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var editorFocused: Bool
 
     @State private var jsonText: String = ""
     @State private var errorText: String?
@@ -334,9 +334,11 @@ private struct PairingPasteSheet: View {
                 SwiftUI.Section {
                     TextEditor(text: $jsonText)
                         .font(.system(.footnote, design: .monospaced))
-                        .frame(minHeight: 220)
+                        .frame(minHeight: 260)                 // a bit taller
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .focused($editorFocused)
+                        .scrollContentBackground(.hidden)      // nicer on iOS 16+
                 } header: {
                     Text("Pairing JSON (from nvpair)")
                 } footer: {
@@ -350,19 +352,27 @@ private struct PairingPasteSheet: View {
                             .font(.footnote)
                     }
                 }
-
-                SwiftUI.Section {
-                    Button("Save Pairing") { save() }
-                        .disabled(jsonText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty)
-                }
             }
             .navigationTitle("Pair \(listener.displayName)")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Always reachable buttons (NOT covered by keyboard)
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                         onDone(.cancelled)
                     }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .disabled(jsonText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty)
+                }
+
+                // Keyboard toolbar to dismiss keyboard
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { editorFocused = false }
                 }
             }
             .alert("Server address mismatch", isPresented: $showMismatchAlert) {

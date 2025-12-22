@@ -15,46 +15,57 @@ enum NovaKeyProtocolV3 {
 
     enum ProtoError: Error, LocalizedError {
         case missingPairingFields
-        case invalidDeviceKeyLength
+        case invalidDeviceKeyLength(actual: Int)
         case goBridge(String)
 
         var errorDescription: String? {
             switch self {
             case .missingPairingFields:
                 return "Pairing record is missing required fields"
-            case .invalidDeviceKeyLength:
-                return "Device key must be 32 bytes"
+            case .invalidDeviceKeyLength(let actual):
+                return "Device key must be 32 bytes (got \(actual))"
             case .goBridge(let s):
                 return "Go bridge failed: \(s)"
             }
         }
     }
 
+    // Keep the existing API so this file is a drop-in replacement.
     static func buildFrame(
         pairing: PairingRecord,
         innerType: InnerMsgType,
         payloadUTF8: String
     ) throws -> Data {
+        switch innerType {
+        case .approve:
+            return try buildApproveFrame(pairing: pairing)
+        case .inject:
+            return try buildInjectFrame(pairing: pairing, secret: payloadUTF8)
+        }
+    }
 
+    static func buildApproveFrame(pairing: PairingRecord) throws -> Data {
         let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
 
         var err: NSError?
-
-        switch innerType {
-        case .approve:
-            guard let nsData = NovakeykemBuildApproveFrame(pairingBlobJSON, &err) else {
-                throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
-            }
-            return nsData as Data
-
-        case .inject:
-            guard let nsData = NovakeykemBuildInjectFrame(pairingBlobJSON, payloadUTF8, &err) else {
-                throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
-            }
-            return nsData as Data
+        guard let nsData = NovakeykemBuildApproveFrame(pairingBlobJSON, &err) else {
+            throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
+        return nsData as Data
+    }
+
+    static func buildInjectFrame(pairing: PairingRecord, secret: String) throws -> Data {
+        let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
+
+        var err: NSError?
+        guard let nsData = NovakeykemBuildInjectFrame(pairingBlobJSON, secret, &err) else {
+            throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
+        }
+        return nsData as Data
     }
 }
+
+// MARK: - Pairing blob JSON (must match PROTOCOL.md)
 
 private extension PairingRecord {
 
@@ -70,7 +81,7 @@ private extension PairingRecord {
             let server_kyber768_pub: String
         }
 
-        // These names are based on what your PairingPasteSheet uses:
+        // From your PairingPasteSheet usage:
         let deviceID = self.deviceID
         let serverAddr = "\(self.serverHost):\(self.serverPort)"
         let serverPubB64 = self.serverPubB64
@@ -80,7 +91,7 @@ private extension PairingRecord {
             throw NovaKeyProtocolV3.ProtoError.missingPairingFields
         }
         guard deviceKey.count == 32 else {
-            throw NovaKeyProtocolV3.ProtoError.invalidDeviceKeyLength
+            throw NovaKeyProtocolV3.ProtoError.invalidDeviceKeyLength(actual: deviceKey.count)
         }
 
         let keyHex = deviceKey.map { String(format: "%02x", $0) }.joined()
@@ -94,9 +105,12 @@ private extension PairingRecord {
         )
 
         let data = try JSONEncoder().encode(blob)
+
         guard let json = String(data: data, encoding: .utf8) else {
-            throw NovaKeyProtocolV3.ProtoError.missingPairingFields
+            throw NovaKeyProtocolV3.ProtoError.goBridge("JSON encoding failed")
         }
-        return json.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+
+        // Encoder produces valid ASCII quotes; trimming is fine.
+        return json.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

@@ -16,7 +16,6 @@ struct ContentView: View {
     @Query(sort: \SecretItem.updatedAt, order: .reverse) private var secrets: [SecretItem]
     @Query private var listeners: [PairedListener]
 
-    // Navigation / sheets
     private enum ActiveSheet: String, Identifiable {
         case add, listeners, settings, exportVault, importVault
         var id: String { rawValue }
@@ -24,22 +23,23 @@ struct ContentView: View {
 
     @State private var activeSheet: ActiveSheet?
 
-    // Secret actions
     @State private var selectedSecret: SecretItem?
     @State private var showActions = false
 
-    // Delete confirm
     @State private var pendingDelete: SecretItem?
     @State private var showDeleteConfirm = false
 
-    // UI
     @State private var statusToast: String?
     @State private var searchText = ""
     @State private var privacyCover = false
 
-    // Settings
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
     @AppStorage("requireFreshBiometric") private var requireFreshBiometric: Bool = true
+
+    // “Two-man friendly” behavior: approve just before sending.
+    @AppStorage("autoApproveBeforeSend") private var autoApproveBeforeSend: Bool = true
+
+    private let client = NovaKeyClientV3()
 
     private var clipboardTimeout: ClipboardTimeout {
         ClipboardTimeout(rawValue: clipboardTimeoutRaw) ?? .s60
@@ -93,9 +93,9 @@ struct ContentView: View {
                     case .settings:
                         SettingsView()
                     case .exportVault:
-                        ExportVaultView() // <-- shim view (or your real export UI)
+                        ExportVaultView()
                     case .importVault:
-                        ImportVaultView() // <-- shim view (or your real import UI)
+                        ImportVaultView()
                     }
                 }
                 .overlay(alignment: .bottom) { toastOverlay }
@@ -116,12 +116,12 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Pieces (helps compiler)
+    // MARK: - Pieces
 
     private var secretsList: some View {
-        List {
+        SwiftUI.List {
             if filteredSecrets.isEmpty {
-                Section {
+                SwiftUI.Section {
                     ContentUnavailableView(
                         secrets.isEmpty ? "No Secrets Yet" : "No Matches",
                         systemImage: "key.fill",
@@ -134,7 +134,7 @@ struct ContentView: View {
                     .listRowBackground(Color.clear)
                 }
             } else {
-                Section("Secrets") {
+                SwiftUI.Section("Secrets") {
                     ForEach(filteredSecrets) { item in
                         secretRow(item)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -328,10 +328,63 @@ struct ContentView: View {
     }
 
     private func sendSelected() async {
-        // You said you'll wire Send later.
-        await MainActor.run {
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-            toast("Send not wired yet")
+        guard let item = selectedSecret else { return }
+
+        guard let target = listeners.first(where: { $0.isDefault }) else {
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                toast("No Send Target set")
+            }
+            return
+        }
+
+        guard let pairing = PairingManager.load(host: target.host, port: target.port) else {
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                toast("Not paired with \(target.displayName)")
+            }
+            return
+        }
+
+        do {
+            let secret = try KeyChainVault.shared.readSecret(
+                for: item.id,
+                prompt: "Send \(item.name) to \(target.displayName)",
+                requireFreshBiometric: requireFreshBiometric
+            )
+
+            // “Two-man friendly” flow: approve -> short delay -> inject
+            if autoApproveBeforeSend {
+                _ = try await client.sendApprove(pairing: pairing)
+                try? await Task.sleep(nanoseconds: 250_000_000) // 250ms
+            }
+
+            do {
+                _ = try await client.sendInject(secret: secret, pairing: pairing)
+            } catch {
+                // One retry: approve then inject again (covers “approve window” misses)
+                if autoApproveBeforeSend {
+                    _ = try await client.sendApprove(pairing: pairing)
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    _ = try await client.sendInject(secret: secret, pairing: pairing)
+                } else {
+                    throw error
+                }
+            }
+
+            item.lastUsedAt = .now
+            item.updatedAt = .now
+            try? modelContext.save()
+
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                toast("Sent to \(target.displayName)")
+            }
+        } catch {
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                toast("Send failed")
+            }
         }
     }
 }
