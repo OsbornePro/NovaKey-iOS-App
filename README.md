@@ -1,0 +1,379 @@
+# 🔑 NovaKey iOS Application
+
+NovaKey is a secure, post-quantum–protected secret injection system. 
+Secrets live **only** on your iPhone and are transmitted to your computer *on demand* using mutual authentication, replay protection, and modern cryptography.  
+  
+This guide covers:
+
+* Installing the NovaKey daemon on Linux
+* Pairing the iOS app with a computer
+* Adding secrets and listeners
+* Sending secrets securely
+* Vault import/export and clipboard behavior
+
+---
+
+## Architecture Overview
+
+* **NovaKey iOS App**
+
+  * Stores secrets in the iOS Keychain
+  * Requires Face ID / passcode to copy or send
+  * Never displays secrets after saving
+* **NovaKey-Daemon**
+
+  * Runs locally on your computer
+  * Accepts secrets only from paired devices
+  * Can require explicit approval (“*Two-Man Mode*”)
+  * Injects secrets directly into the active application
+
+---
+
+## Installing NovaKey-Daemon
+
+### Supported Platforms
+
+* Windows 10 & Windows 11
+* iOS 17+
+* macOS 14+ (*for Mac Catalyst / macOS*)
+* Linux
+  * RHEL based distros
+  * Debian based distros
+* Any system with:
+  * `systemd`
+  * `glibc`
+  * Root access
+
+---
+
+### Automatic Installation (*Recommended*)
+
+The NovaKey-Daemon includes a build script and a hardened installer script for each platform (*Windows, Linux, Darwin*).
+
+#### 1. Download a pre-compiled binary or build the `novakey-service` binary using `build.sh` or `build.ps1`
+
+Ensure the `novakey-<distro>-<architecture>` binary is present in the current directory.
+
+Windows build the executable
+```powershell
+.\build.ps1 -Target Windows
+# Creates dist\novakey-windows-amd64.exe
+````
+
+Build the binary on Linux or macOS. 
+> **Note** macOS typically requires you to do builds on their operating system in order to work correctly.
+
+Linux Build the novakey-darwin-amd64 binary
+```bash
+# On Linux
+./build.sh -t linux
+# Creates dist/novakey-linux-amd64
+```
+
+macOS Build the novakey-darwin-amd64 binary
+```bash
+# On macOS
+./build.sh -t darwin
+# Creates dist/novakey-darwin-amd64
+```
+
+#### 2. Run the Installer for your Operating System
+
+Install on Windows
+```powershell
+.\Installers\install-windows.ps1
+```
+
+Install on Linux
+```bash
+sudo bash Installers/install-linux.sh
+```
+
+Install on macOS
+```bash
+sudo bash Installers/install-macos.sh
+```
+
+#### What the installer does
+
+* Creates a dedicated system user (`novakey`)
+* Installs the daemon to `/usr/local/bin/novakey-service`
+* Creates secure directories:
+
+  * `/etc/novakey`
+  * `/var/lib/novakey`
+  * `/var/log/novakey`
+* Installs a hardened `systemd` service
+* Enables and starts the service
+
+#### Verify installation
+
+```bash
+systemctl status novakey
+```
+
+You should see the service running.
+
+---
+
+### Manual Installation (Advanced)
+
+If you prefer full control:
+
+#### 1. Create service user
+
+```bash
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin novakey
+```
+
+#### 2. Install binary
+
+```bash
+sudo install -m 755 novakey-service /usr/local/bin/novakey-service
+```
+
+#### 3. Create directories
+
+```bash
+sudo mkdir -p /etc/novakey /var/lib/novakey /var/log/novakey
+sudo chown -R novakey:novakey /var/lib/novakey /var/log/novakey
+sudo chmod 700 /var/lib/novakey /var/log/novakey
+```
+
+#### 4. Create systemd unit
+
+```ini
+[Unit]
+Description=NovaKey Secure Typing Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=novakey
+Group=novakey
+ExecStart=/usr/local/bin/novakey-service
+Restart=on-failure
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/novakey /var/log/novakey
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable novakey
+sudo systemctl start novakey
+```
+
+---
+
+## Pairing Your iPhone with NovaKey-Daemon
+
+Pairing establishes **mutual trust** between your phone and computer.
+This only needs to be done once per device.
+
+### Step 1: Add a Listener (*iOS App*)
+
+1. Open **NovaKey**
+2. Tap the **Listeners** icon (*antenna*)
+3. Under **Add Listener**:
+
+   * **Name**: Friendly name (*e.g. “Linux Desktop”*)
+   * **Host or IP**: Computer’s IP or hostname
+   * **Port**: `60768` (*default*)
+   * (*Optional*) Notes
+4. Enable **Make Send Target** if this is your main machine
+5. Tap **Add**
+
+> ⚠️ You must have a **Send Target selected** to pair or send secrets.
+
+---
+
+### Step 2: Pair Using QR Code (*Recommended*)
+
+1. On your computer, start pairing in the daemon
+   (*when the file devices.json does not exist, running the novakey service will display a QR code. If devices.json already exists it will not*)
+2. In NovaKey:
+
+   * Open **Listeners**
+   * Tap the listener
+   * Choose **Pair**
+   * Tap **Scan QR Code**
+3. Scan the QR shown on the computer
+
+NovaKey will:
+
+* Fetch the full pairing blob securely
+* Validate the server identity
+* Store pairing keys in the iOS Keychain
+* Finalize pairing with the daemon
+
+You’ll see **“Paired”** once complete.
+
+---
+
+### Step 3: Manual Pairing (Advanced)
+
+If you cannot scan a QR code:
+
+1. Copy the `nvpair` JSON blob from the daemon
+2. In NovaKey:
+
+   * Listeners → Pair
+   * Paste the JSON into the editor
+   * Tap **Save**
+
+⚠️ Treat the pairing blob like a secret. Anyone with it can impersonate your device.
+
+---
+
+### Why Host/IP Cannot Be Edited After Pairing
+
+For security reasons:
+
+* The pairing keys are bound to a **specific server address**
+* Changing the IP would allow silent redirection attacks
+* If the server address changes, **create a new listener and re-pair**
+
+You *can* edit:
+
+* Display name
+* Notes
+
+---
+
+## Adding Secrets
+
+1. Tap **+**
+2. Enter:
+
+   * **Label** (e.g. “Email Password”)
+   * **Secret**
+   * **Confirm Secret**
+3. Tap **Save**
+
+### Important Behavior
+
+* Secrets are **never displayed again**
+* Stored only in the iOS Keychain
+* Access always requires Face ID / passcode
+
+---
+
+## Sending Secrets
+
+1. Tap a secret
+2. Choose **Send**
+3. NovaKey will:
+
+   * Authenticate you
+   * Verify pairing
+   * Optionally request approval on the computer
+   * Inject the secret
+
+If no Send Target exists, sending is blocked.
+
+---
+
+## Clipboard Behavior
+
+When copying a secret:
+
+* Clipboard is **local-only** (*no Universal Clipboard*)
+* Auto-clear timer is configurable:
+
+  * Never
+  * 15s / 30s / 60s / 2m / 5m
+* Clipboard is cleared when the app backgrounds (*unless disabled*)
+
+You can always tap **Clear Clipboard Now**.
+
+---
+
+## Vault Import & Export
+
+NovaKey supports encrypted vault backups.
+
+### Exporting a Vault
+
+1. Settings → **Export Vault**
+2. Choose:
+
+   * Protection: `None` or `Password`
+   * Cipher:
+
+     * AES-256-GCM
+     * ChaCha20-Poly1305
+3. (Optional) Require Face ID for each secret
+4. Save the file
+
+Vaults are exported as JSON.
+
+---
+
+### Importing a Vault
+
+1. Settings → **Import Vault**
+2. Select a vault file
+3. Enter password if required
+
+Import behavior:
+
+* Existing secrets are updated
+* New secrets are added
+* Keychain entries are overwritten securely
+
+---
+
+## Security Notes
+
+* Post-quantum key exchange (Kyber768 / ML-KEM)
+* Authenticated encryption (AES-GCM or ChaCha20-Poly1305)
+* Replay protection and freshness checks
+* Per-device rate limiting
+* Optional Two-Man Mode
+* Process whitelisting supported on the daemon
+
+---
+
+## Troubleshooting
+
+**Nothing types**
+
+* On Linux: Wayland may block injection
+* On macOS: Accessibility permissions required
+
+**Not paired**
+
+* Listeners → Re-pair
+
+**Send blocked**
+
+* No Send Target selected
+* Daemon not armed
+* Two-Man approval required
+
+---
+
+## Final Notes
+
+NovaKey is intentionally opinionated:
+
+* Secrets never leak
+* Pairings are explicit
+* No silent fallbacks
+* No cloud dependency
+
+If something feels “locked down,” that’s by design.
