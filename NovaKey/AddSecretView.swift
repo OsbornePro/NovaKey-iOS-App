@@ -25,8 +25,8 @@ struct AddSecretView: View {
                 }
 
                 Section("Secret") {
-                    SecureField("Enter secret", text: $secret)
-                    SecureField("Confirm secret", text: $confirm)
+                    TextField("Enter secret", text: $secret)
+                    TextField("Confirm secret", text: $confirm)
                 }
 
                 if let errorMessage {
