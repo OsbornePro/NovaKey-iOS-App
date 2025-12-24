@@ -14,11 +14,12 @@ struct HelpView: View {
         NavigationStack {
             List {
                 Section("Quick Start") {
-                    step(1, "Run NovaKey-Daemon on your computer.")
-                    step(2, "Add your computer as a Listener in the iPhone app.")
-                    step(3, "Pair using the nvpair JSON blob.")
-                    step(4, "Set a Send Target.")
-                    step(5, "Add a secret, then Send.")
+                    step(1, "Add your computer as a Listener in the phone app.")
+                    step(2, "Set the added listener as your Send Target by touching it.")
+                    step(3, "Run the install script for NovaKey-Daemon on your computer. The first start will generate a QR code and open it on your computer.")
+                    step(4, "Select the listener added on your phone, swipe it right and select 'Pair'.")
+                    step(5, "Select the 'Scan QR Code' button and scan the QR code on your computer.")
+                    step(6, "Add a secret, then Send!")
                 }
 
                 Section("Pairing") {
@@ -31,14 +32,14 @@ struct HelpView: View {
                 }
 
                 Section("Sending & Two-Man Mode") {
-                    bullet("If two-man mode is enabled on the daemon, NovaKey will request approval before sending when needed.")
-                    bullet("If injection is blocked (focus policy, disarmed state, etc.), the daemon may fall back to clipboard depending on config.")
+                    bullet("Two-man mode is enabled by default on the daemon. This means NovaKey will request approval before sending secrets. Two-man mode is kind of like two people turning the key on a nuclear submarine to launch a nuke.")
+                    bullet("If text injection is blocked by something, the daemon by default is set to a 'send-to-clipboard' action which you can change in the 'server_config.yaml' file on your computer.")
                     Link("Two-man mode", destination: URL(string: "https://novakey.app/docs/two-man")!)
                     Link("Daemon config", destination: URL(string: "https://novakey.app/docs/config")!)
                 }
 
                 Section("Troubleshooting") {
-                    bullet("Not paired: open Listeners → Pair/Re-pair.")
+                    bullet("Not paired: open Listeners → Pair/Re-pair. Once you set the IP for a 'Listener' it cannot be changed. You have to delete and re-add the listener if a mistake was made.")
                     bullet("Not armed: disable arming in daemon config or use arm API if enabled.")
                     bullet("Nothing types: check macOS Accessibility permissions or Wayland limitations on Linux.")
                     Link("Troubleshooting", destination: URL(string: "https://novakey.app/docs/troubleshooting")!)
