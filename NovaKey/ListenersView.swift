@@ -11,7 +11,6 @@ import UIKit
 import UniformTypeIdentifiers
 import VisionKit
 
-
 struct ListenersView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -19,12 +18,12 @@ struct ListenersView: View {
 
     @Query(sort: \PairedListener.displayName) private var listeners: [PairedListener]
 
-    // Add listener form
-    @State private var name = ""
-    @State private var host = ""
-    @State private var portText = "60768"
-    @State private var notes = ""
-    @State private var makeSendTarget = false
+    // Persist "Add listener" draft fields across background/relaunch
+    @AppStorage("listeners.add.name") private var name = ""
+    @AppStorage("listeners.add.host") private var host = ""
+    @AppStorage("listeners.add.portText") private var portText = "60768"
+    @AppStorage("listeners.add.notes") private var notes = ""
+    @AppStorage("listeners.add.makeSendTarget") private var makeSendTarget = false
 
     // Pairing sheet
     @State private var pairingFor: PairedListener?
@@ -143,7 +142,6 @@ struct ListenersView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            
         }
     }
 
@@ -244,7 +242,7 @@ struct ListenersView: View {
     }
 
     private func presentPairSheet(for l: PairedListener) {
-        pairingFor = l   // this triggers the navigationDestination push
+        pairingFor = l
     }
 
     // MARK: - Edit (name + notes only)
@@ -308,11 +306,13 @@ struct ListenersView: View {
         modelContext.insert(new)
         try? modelContext.save()
 
+        // Clear persisted drafts after successful add
         name = ""
         host = ""
         portText = "60768"
         notes = ""
         makeSendTarget = false
+
         toast("Listener added")
     }
 
@@ -440,6 +440,7 @@ private struct EditListenerSheet: View {
 }
 
 // MARK: - Pairing paste sheet (Scan QR -> fetch /pair/bootstrap -> save -> /pair/complete)
+
 private struct PairingPasteSheet: View {
     enum Result {
         case saved
@@ -454,7 +455,12 @@ private struct PairingPasteSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var editorFocused: Bool
 
-    @State private var jsonText: String = ""
+    // Store the key as a REAL stored property, set in init (no self-use-before-init)
+    private let draftKey: String
+
+    // Dynamic AppStorage key initialized in init
+    @AppStorage private var jsonText: String
+
     @State private var errorText: String?
     @State private var showMismatchAlert = false
     @State private var mismatchExpected = ""
@@ -462,6 +468,15 @@ private struct PairingPasteSheet: View {
 
     // QR scanner
     @State private var showQRScanner = false
+
+    init(listener: PairedListener, onDone: @escaping (Result) -> Void) {
+        self.listener = listener
+        self.onDone = onDone
+
+        let key = "pairing.json.draft.\(listener.host):\(listener.port)"
+        self.draftKey = key
+        _jsonText = AppStorage(wrappedValue: "", key)
+    }
 
     var body: some View {
         NavigationStack {
@@ -474,7 +489,6 @@ private struct PairingPasteSheet: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                // ✅ ALWAYS show the Scan button (fallback scanner handles older/unsupported devices)
                 Button {
                     errorText = nil
                     showQRScanner = true
@@ -527,8 +541,6 @@ private struct PairingPasteSheet: View {
             } message: {
                 Text("Listener is \(mismatchExpected) but pairing blob is \(mismatchGot).\n\nCreate/update a listener that matches, then pair again.")
             }
-
-            // Replace your sheet with this: VisionKit when supported, else AVFoundation fallback
             .sheet(isPresented: $showQRScanner) {
                 if #available(iOS 16.0, *),
                    DataScannerViewController.isSupported,
@@ -563,19 +575,13 @@ private struct PairingPasteSheet: View {
         errorText = nil
 
         do {
-            // 1) Parse small QR (novakey://pair?v=2&host&port&token)
             let link = try decodeNovaKeyPairQRLink(payload)
-
-            // 2) Fetch big blob from daemon
             let bootstrap = try await fetchPairBootstrap(link)
-
-            // 3) Convert to JSON your PairingManager expects
             let json = try makePairingJSON(from: bootstrap)
 
-            // Show it in the editor (nice for transparency/debug)
+            // persists automatically
             jsonText = json
 
-            // 4) Validate + save locally
             let record = try PairingManager.parsePairingJSON(json)
             let expected = "\(listener.host):\(listener.port)"
             let got = "\(record.serverHost):\(record.serverPort)"
@@ -589,9 +595,10 @@ private struct PairingPasteSheet: View {
             }
 
             try PairingManager.save(record)
-
-            // 5) Tell daemon to finalize devices.json + reload
             try await postPairComplete(link)
+
+            // clear draft after success
+            jsonText = ""
 
             dismiss()
             onDone(.saved)
@@ -616,6 +623,10 @@ private struct PairingPasteSheet: View {
             }
 
             try PairingManager.save(record)
+
+            // clear draft after success
+            jsonText = ""
+
             dismiss()
             onDone(.saved)
         } catch {

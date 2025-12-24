@@ -21,7 +21,12 @@ struct ContentView: View {
         var id: String { rawValue }
     }
 
+    // ✅ Persist which sheet is open across app switches / scene recreation
+    @SceneStorage("ContentView.activeSheet") private var activeSheetRaw: String?
     @State private var activeSheet: ActiveSheet?
+
+    // ✅ Persist search text (optional)
+    @SceneStorage("ContentView.searchText") private var searchText: String = ""
 
     @State private var selectedSecret: SecretItem?
     @State private var showActions = false
@@ -30,13 +35,10 @@ struct ContentView: View {
     @State private var showDeleteConfirm = false
 
     @State private var statusToast: String?
-    @State private var searchText = ""
     @State private var privacyCover = false
 
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
     @AppStorage("requireFreshBiometric") private var requireFreshBiometric: Bool = true
-
-    // “Two-man friendly” behavior: approve just before sending.
     @AppStorage("autoApproveBeforeSend") private var autoApproveBeforeSend: Bool = true
 
     private let client = NovaKeyClientV3()
@@ -51,12 +53,19 @@ struct ContentView: View {
         return secrets.filter { $0.name.localizedCaseInsensitiveContains(q) }
     }
 
+    // keep these in sync
+    private func setActiveSheet(_ sheet: ActiveSheet?) {
+        activeSheet = sheet
+        activeSheetRaw = sheet?.rawValue
+    }
+
     var body: some View {
         NavigationStack {
             secretsList
                 .navigationTitle("NovaKey")
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
                 .toolbar { topToolbar }
+
                 .confirmationDialog(
                     "Secret Actions",
                     isPresented: $showActions,
@@ -72,6 +81,7 @@ struct ContentView: View {
                 } message: {
                     Text(selectedSecret?.name ?? "")
                 }
+
                 .alert("Delete this secret?",
                        isPresented: $showDeleteConfirm) {
                     Button("Delete", role: .destructive) {
@@ -84,6 +94,8 @@ struct ContentView: View {
                 } message: {
                     Text("This cannot be undone.")
                 }
+
+                // ✅ Only ONE sheet modifier
                 .sheet(item: $activeSheet) { sheet in
                     switch sheet {
                     case .about:
@@ -102,8 +114,19 @@ struct ContentView: View {
                         ImportVaultView()
                     }
                 }
+
                 .overlay(alignment: .bottom) { toastOverlay }
                 .overlay { privacyOverlay }
+        }
+        .onAppear {
+            // restore persisted sheet (if any)
+            if let raw = activeSheetRaw, let sheet = ActiveSheet(rawValue: raw) {
+                activeSheet = sheet
+            }
+        }
+        .onChange(of: activeSheet) { _, newValue in
+            // keep persisted value updated
+            activeSheetRaw = newValue?.rawValue
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -162,8 +185,8 @@ struct ContentView: View {
     @ToolbarContentBuilder
     private var topToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            NavigationLink {
-                ListenersView()
+            Button {
+                setActiveSheet(.listeners)
             } label: {
                 Image(systemName: "antenna.radiowaves.left.and.right")
             }
@@ -180,12 +203,12 @@ struct ContentView: View {
                     }
                 }
                 Divider()
-                Button("Export Vault") { activeSheet = .exportVault }
-                Button("Import Vault") { activeSheet = .importVault }
+                Button("Export Vault") { setActiveSheet(.exportVault) }
+                Button("Import Vault") { setActiveSheet(.importVault) }
                 Divider()
-                Button("Settings") { activeSheet = .settings }
-                Button("Help") { activeSheet = .help }
-                Button("About") { activeSheet = .about }
+                Button("Settings") { setActiveSheet(.settings) }
+                Button("Help") { setActiveSheet(.help) }
+                Button("About") { setActiveSheet(.about) }
             } label: {
                 Image(systemName: "gearshape.fill")
             }
@@ -193,7 +216,7 @@ struct ContentView: View {
         }
 
         ToolbarItem(placement: .topBarTrailing) {
-            Button { activeSheet = .add } label: {
+            Button { setActiveSheet(.add) } label: {
                 Image(systemName: "plus.circle.fill")
             }
             .accessibilityLabel("Add Secret")
@@ -313,7 +336,6 @@ struct ContentView: View {
     }
 
     private func copySelected() async {
-        // Snapshot what you need on main, before awaits.
         let snapshot: (id: UUID, name: String)?
         let requireFresh = requireFreshBiometric
         let timeout = clipboardTimeout
@@ -325,7 +347,6 @@ struct ContentView: View {
             }
             guard let snapshot else { return }
 
-            // Keychain/biometric prompt can happen here
             let secret = try KeyChainVault.shared.readSecret(
                 for: snapshot.id,
                 prompt: "Copy \(snapshot.name)",
@@ -334,7 +355,6 @@ struct ContentView: View {
 
             ClipboardManager.copyRawSensitive(secret, timeout: timeout)
 
-            // SwiftData updates MUST be on MainActor
             await MainActor.run {
                 if let item = secrets.first(where: { $0.id == snapshot.id }) {
                     item.lastUsedAt = .now
@@ -358,7 +378,6 @@ struct ContentView: View {
     }
 
     private func sendSelected() async {
-        // Snapshot what you need on main, before awaits.
         let secretSnapshot: (id: UUID, name: String)?
         let targetSnapshot: (host: String, port: Int, name: String)?
         let requireFresh = requireFreshBiometric
@@ -397,7 +416,6 @@ struct ContentView: View {
                 requireFreshBiometric: requireFresh
             )
 
-            // “Two-man friendly” flow: approve -> short delay -> inject
             if doApprove {
                 _ = try await client.sendApprove(pairing: pairing)
                 try? await Task.sleep(nanoseconds: 250_000_000)
@@ -415,7 +433,6 @@ struct ContentView: View {
                 }
             }
 
-            // SwiftData updates MUST be on MainActor
             await MainActor.run {
                 if let item = secrets.first(where: { $0.id == secretSnapshot.id }) {
                     item.lastUsedAt = .now

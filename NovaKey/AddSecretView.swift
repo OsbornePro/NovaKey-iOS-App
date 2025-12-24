@@ -6,16 +6,30 @@
 //
 
 import SwiftUI
-import UIKit   // ✅ needed for UIPasteboard
+import UIKit
 
 struct AddSecretView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var name = ""
-    @State private var secret = ""
-    @State private var confirm = ""
+    // Persist drafts across leaving app & returning (scene-based persistence)
+    @SceneStorage("AddSecret.name") private var name: String = ""
+    @SceneStorage("AddSecret.secret") private var secret: String = ""
+    @SceneStorage("AddSecret.confirm") private var confirm: String = ""
+
     @State private var errorMessage: String?
+    @available(iOS 16.0, *)
+    private func pasteButton(assign: @escaping (String) -> Void) -> some View {
+        PasteButton(payloadType: Data.self) { items in
+            // items are Data blobs; try to decode as UTF-8
+            if let d = items.first, let s = String(data: d, encoding: .utf8), !s.isEmpty {
+                errorMessage = nil
+                assign(s)
+            } else {
+                errorMessage = "Clipboard doesn’t contain plain text that iOS can paste here."
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -27,50 +41,64 @@ struct AddSecretView: View {
                 }
 
                 Section("Secret") {
-                    HStack {
+                    HStack(spacing: 10) {
                         SecureField("Enter secret", text: $secret)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
 
-                        Button {
-                            paste(into: .secret)
-                        } label: {
-                            Image(systemName: "doc.on.clipboard")
+                        if #available(iOS 16.0, *) {
+                            pasteButton { secret = $0 }
+                        } else {
+                            Button { paste(into: .secret) } label: {
+                                Image(systemName: "doc.on.clipboard")
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Paste secret")
                     }
 
-                    HStack {
+                    HStack(spacing: 10) {
                         SecureField("Confirm secret", text: $confirm)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
 
-                        Button {
-                            paste(into: .confirm)
-                        } label: {
-                            Image(systemName: "doc.on.clipboard")
+                        if #available(iOS 16.0, *) {
+                            pasteButton { confirm = $0 }
+                        } else {
+                            Button { paste(into: .confirm) } label: {
+                                Image(systemName: "doc.on.clipboard")
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Paste confirm secret")
                     }
+                }
+                .onAppear {
+                    let pb = UIPasteboard.general
+                    print("PASTE DEBUG onAppear hasStrings:", pb.hasStrings,
+                          "string len:", pb.string?.count ?? -1,
+                          "types:", pb.types)
                 }
 
                 if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
                 }
 
                 Section {
                     Button("Save") { save() }
-                        .disabled(name.isEmpty || secret.isEmpty || secret != confirm)
-                } footer: {
-                    Text("After saving, NovaKey will never display the secret again. Copy/Send will require Face ID / passcode.")
+                        .disabled(
+                            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                            secret.isEmpty ||
+                            secret != confirm
+                        )
                 }
             }
             .navigationTitle("New Secret")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        clearDraft()
+                        dismiss()
+                    }
                 }
             }
         }
@@ -82,7 +110,8 @@ struct AddSecretView: View {
         errorMessage = nil
         let pb = UIPasteboard.general
 
-        print("Pasteboard hasStrings:", pb.hasStrings, "changeCount:", pb.changeCount)
+        // Debug if you want:
+        // print("Pasteboard hasStrings:", pb.hasStrings, "changeCount:", pb.changeCount)
 
         guard pb.hasStrings else {
             errorMessage = "Paste blocked by iOS. Go to Settings and allow “Paste from Other Apps” for NovaKey (or reset Location & Privacy)."
@@ -95,23 +124,39 @@ struct AddSecretView: View {
         }
 
         switch target {
-        case .secret:  secret = s
-        case .confirm: confirm = s
+        case .secret:
+            secret = s
+        case .confirm:
+            confirm = s
         }
     }
 
     private func save() {
-        guard secret == confirm else { errorMessage = "Secrets do not match"; return }
-        let item = SecretItem(name: name)
+        guard secret == confirm else {
+            errorMessage = "Secrets do not match"
+            return
+        }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let item = SecretItem(name: trimmedName)
+
         do {
             try KeyChainVault.shared.save(secret: secret, for: item.id)
             modelContext.insert(item)
             try modelContext.save()
-            secret = ""
-            confirm = ""
+
+            // Clear persisted draft after successful save
+            clearDraft()
             dismiss()
         } catch {
             errorMessage = "Failed to save to Keychain"
         }
+    }
+
+    private func clearDraft() {
+        name = ""
+        secret = ""
+        confirm = ""
+        errorMessage = nil
     }
 }

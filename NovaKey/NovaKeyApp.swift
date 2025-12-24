@@ -23,11 +23,8 @@ struct NovaKeyApp: App {
 
     @StateObject private var appLock = AppLock()
 
-    // Force a fresh SwiftData store (bump name whenever you change models during dev)
     private let container: ModelContainer = {
         let schema = Schema([SecretItem.self, PairedListener.self, LocalAccount.self])
-
-        // Change this string again if you do more schema churn later.
         let config = ModelConfiguration("NovaKeyStore_v3", schema: schema)
 
         do {
@@ -48,15 +45,19 @@ struct NovaKeyApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
-                Task { await appLock.unlockIfNeeded() }
+                // Intentionally no clipboard behavior here.
+                // NovaKeyApp handles unlock + clipboard policy.
+                break
 
-            case .inactive, .background:
-                appLock.lock()
-                if clipboardTimeout != .never {
-                    ClipboardManager.clearNow()
-                }
+            case .inactive:
+                // Do nothing: iOS enters inactive for FaceID, paste prompts, Control Center, etc.
+                break
 
-            default:
+            case .background:
+                // Do nothing: clipboard clearing handled in NovaKeyApp.swift (and only on background).
+                break
+
+            @unknown default:
                 break
             }
         }
