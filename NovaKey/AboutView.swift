@@ -53,10 +53,11 @@ struct AboutView: View {
 
                 Section("Credits") {
                     LabeledContent("Author", value: "Robert H. Osborne")
+                    LabeledContent("Logo", value: "⁨Terézia Uhrínková⁩")
+
                     Text("© \(Calendar.current.component(.year, from: .now), format: .number.grouping(.never)) NovaKey - OsbornePro. All rights reserved.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-
                 }
 
                 Section("Security") {
