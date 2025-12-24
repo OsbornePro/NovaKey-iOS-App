@@ -16,26 +16,26 @@ struct HelpView: View {
                 Section("Quick Start") {
                     step(1, "Add your computer as a Listener in the phone app.")
                     step(2, "Set the added listener as your Send Target by touching it.")
-                    step(3, "Run the install script for NovaKey-Daemon on your computer. The first start will generate a QR code and open it on your computer.")
+                    step(3, "Run the install script for NovaKey-Daemon on your computer. First run generates a QR code and displays it on your computer.")
                     step(4, "Select the listener added on your phone, swipe it right and select 'Pair'.")
                     step(5, "Select the 'Scan QR Code' button and scan the QR code on your computer.")
                     step(6, "Add a secret, then Send!")
                 }
 
                 Section("Pairing") {
-                    Text("Pairing connects your phone to a specific NovaKey listener. You’ll paste the nvpair JSON blob into the Pair screen. Treat that blob like a secret.")
+                    Text("Pairing connects your phone to a specific NovaKey listener. You can scan the QR code or paste in the valid JSON blob on the Pair screen. Treat that blob like a secret. The install scripts I wrote allow only your user account to access that file.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Link("Pairing guide", destination: URL(string: "https://novakey.app/docs/pairing")!)
+                    Link("Pairing Guide", destination: URL(string: "https://novakey.app/docs/pairing")!)
                 }
 
                 Section("Sending & Two-Man Mode") {
                     bullet("Two-man mode is enabled by default on the daemon. This means NovaKey will request approval before sending secrets. Two-man mode is kind of like two people turning the key on a nuclear submarine to launch a nuke.")
                     bullet("If text injection is blocked by something, the daemon by default is set to a 'send-to-clipboard' action which you can change in the 'server_config.yaml' file on your computer.")
-                    Link("Two-man mode", destination: URL(string: "https://novakey.app/docs/two-man")!)
-                    Link("Daemon config", destination: URL(string: "https://novakey.app/docs/config")!)
+                    Link("Two-Man Mode", destination: URL(string: "https://novakey.app/docs/two-man")!)
+                    Link("Daemon Config", destination: URL(string: "https://novakey.app/docs/config")!)
                 }
 
                 Section("Troubleshooting") {
