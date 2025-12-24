@@ -4,8 +4,8 @@
 //
 //  Created by Robert Osborne on 12/21/25.
 //
+
 import SwiftUI
-import SwiftData
 
 struct AddSecretView: View {
     @Environment(\.dismiss) private var dismiss
@@ -22,11 +22,31 @@ struct AddSecretView: View {
                 Section("Label") {
                     TextField("e.g. Email Master", text: $name)
                         .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
 
                 Section("Secret") {
-                    TextField("Enter secret", text: $secret)
-                    TextField("Confirm secret", text: $confirm)
+                    HStack {
+                        SecureField("Enter secret", text: $secret)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
+                        PasteButton(payloadType: String.self) { strings in
+                            if let first = strings.first { secret = first }
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+
+                    HStack {
+                        SecureField("Confirm secret", text: $confirm)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
+                        PasteButton(payloadType: String.self) { strings in
+                            if let first = strings.first { confirm = first }
+                        }
+                        .labelStyle(.iconOnly)
+                    }
                 }
 
                 if let errorMessage {
@@ -56,7 +76,6 @@ struct AddSecretView: View {
             try KeyChainVault.shared.save(secret: secret, for: item.id)
             modelContext.insert(item)
             try modelContext.save()
-
             secret = ""
             confirm = ""
             dismiss()
