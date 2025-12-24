@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "novakey-logo.jpg",
+      "filename" : "novakey-logo-120x120.jpg",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "novakey-logo 1.jpg",
+      "filename" : "novakey-logo-180x180.jpg",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "novakey-logo 2.jpg",
+      "filename" : "novakey-logo.jpg",
       "idiom" : "universal",
       "scale" : "3x"
     }

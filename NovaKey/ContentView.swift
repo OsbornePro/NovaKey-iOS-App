@@ -117,7 +117,7 @@ struct ContentView: View {
             case .background:
                 withAnimation { privacyCover = true }
                 if clipboardTimeout != .never {
-                    ClipboardManager.clearNow()
+                    ClipboardManager.clearNowIfOwnedAndUnchanged()
                 }
 
             default:

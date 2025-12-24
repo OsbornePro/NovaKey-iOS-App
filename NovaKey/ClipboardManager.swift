@@ -39,6 +39,9 @@ enum ClipboardTimeout: String, CaseIterable, Identifiable {
 }
 
 enum ClipboardManager {
+    private static let ownedKey = "NovaKeyClipboardOwned"
+    private static let ownedChangeCountKey = "NovaKeyClipboardOwnedChangeCount"
+
     /// Copies plaintext to clipboard with localOnly (no Universal Clipboard)
     /// and optional expiration (nil when timeout == .never).
     static func copyRawSensitive(_ value: String, timeout: ClipboardTimeout) {
@@ -54,10 +57,41 @@ enum ClipboardManager {
             [[UTType.plainText.identifier: value]],
             options: options
         )
+
+        // Mark ownership AND remember which clipboard version we wrote.
+        UserDefaults.standard.set(true, forKey: ownedKey)
+        UserDefaults.standard.set(UIPasteboard.general.changeCount, forKey: ownedChangeCountKey)
     }
 
-    /// Explicitly synchronous.
+    /// Clears clipboard ONLY if NovaKey wrote the *current* clipboard contents.
+    static func clearNowIfOwnedAndUnchanged() {
+        guard UserDefaults.standard.bool(forKey: ownedKey) else { return }
+
+        let ownedChangeCount = UserDefaults.standard.integer(forKey: ownedChangeCountKey)
+        let currentChangeCount = UIPasteboard.general.changeCount
+
+        // If user copied something else after NovaKey, don't clear it.
+        guard ownedChangeCount == currentChangeCount else {
+            UserDefaults.standard.set(false, forKey: ownedKey)
+            return
+        }
+
+        UIPasteboard.general.items = []
+        UserDefaults.standard.set(false, forKey: ownedKey)
+    }
+
+    /// Optional: call this when app becomes active to drop stale ownership.
+    static func discardOwnershipIfClipboardChanged() {
+        guard UserDefaults.standard.bool(forKey: ownedKey) else { return }
+        let ownedChangeCount = UserDefaults.standard.integer(forKey: ownedChangeCountKey)
+        if UIPasteboard.general.changeCount != ownedChangeCount {
+            UserDefaults.standard.set(false, forKey: ownedKey)
+        }
+    }
+
+    /// Manual "nuke clipboard now" button can still use this.
     static func clearNow() {
         UIPasteboard.general.items = []
+        UserDefaults.standard.set(false, forKey: ownedKey)
     }
 }

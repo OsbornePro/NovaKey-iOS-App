@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit   // ✅ needed for UIPasteboard
 
 struct AddSecretView: View {
     @Environment(\.dismiss) private var dismiss
@@ -31,10 +32,13 @@ struct AddSecretView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
 
-                        PasteButton(payloadType: String.self) { strings in
-                            if let first = strings.first { secret = first }
+                        Button {
+                            paste(into: .secret)
+                        } label: {
+                            Image(systemName: "doc.on.clipboard")
                         }
-                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Paste secret")
                     }
 
                     HStack {
@@ -42,10 +46,13 @@ struct AddSecretView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
 
-                        PasteButton(payloadType: String.self) { strings in
-                            if let first = strings.first { confirm = first }
+                        Button {
+                            paste(into: .confirm)
+                        } label: {
+                            Image(systemName: "doc.on.clipboard")
                         }
-                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Paste confirm secret")
                     }
                 }
 
@@ -66,6 +73,30 @@ struct AddSecretView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+        }
+    }
+
+    private enum PasteTarget { case secret, confirm }
+
+    private func paste(into target: PasteTarget) {
+        errorMessage = nil
+        let pb = UIPasteboard.general
+
+        print("Pasteboard hasStrings:", pb.hasStrings, "changeCount:", pb.changeCount)
+
+        guard pb.hasStrings else {
+            errorMessage = "Paste blocked by iOS. Go to Settings and allow “Paste from Other Apps” for NovaKey (or reset Location & Privacy)."
+            return
+        }
+
+        guard let s = pb.string, !s.isEmpty else {
+            errorMessage = "Clipboard is empty."
+            return
+        }
+
+        switch target {
+        case .secret:  secret = s
+        case .confirm: confirm = s
         }
     }
 
