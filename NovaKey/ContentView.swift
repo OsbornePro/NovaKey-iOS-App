@@ -376,7 +376,6 @@ struct ContentView: View {
             }
         }
     }
-
     private func sendSelected() async {
         let secretSnapshot: (id: UUID, name: String)?
         let targetSnapshot: (host: String, port: Int, name: String)?
@@ -443,9 +442,10 @@ struct ContentView: View {
     
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
     
-                // UX tweak: Wayland / clipboard-success status
+                // ✅ UX: show daemon message on clipboard-success if provided
                 if resp.status == .okClipboard {
-                    toast("Copied to clipboard on \(targetSnapshot.name)")
+                    let m = resp.message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    toast(m.isEmpty ? "Copied to clipboard on \(targetSnapshot.name)" : m)
                 } else {
                     toast("Sent to \(targetSnapshot.name)")
                 }
