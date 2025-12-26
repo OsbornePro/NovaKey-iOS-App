@@ -1,8 +1,8 @@
-# App Store Privacy Disclosure (Apple-Friendly)
+# 🛡️ App Store Privacy Disclosure
 
 ### Data Collection
 
-NovaKey does **not collect** or transmit any personal data to the developer.
+NovaKey **DOES NOT collect** or transmit any personal data to the developer.
 
 ### Data Stored on Device
 
@@ -24,11 +24,11 @@ NovaKey **does not track users** across apps or websites.
 
 ### Diagnostics
 
-Optional local logs may exist on the paired computer (daemon), not on the iOS device.
+Optional local logs may exist on the paired computer (*daemon*), not on the iOS device.
 
 ---
 
-### Privacy Summary (Short Form)
+### Privacy Summary
 
 > NovaKey stores secrets locally on your device and sends them only to computers you explicitly pair with.
 > No data is collected, tracked, or shared with third parties.
