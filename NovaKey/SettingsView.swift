@@ -51,7 +51,7 @@ struct SettingsView: View {
                 }
 
                 Section("Security") {
-                    Toggle("Require Face ID every time", isOn: $requireFreshBiometric)
+                    Toggle("Fewer Face ID Prompts", isOn: $requireFreshBiometric)
                 }
 
                 Section("Support") {
