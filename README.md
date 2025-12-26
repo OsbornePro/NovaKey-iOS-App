@@ -263,6 +263,19 @@ Import behavior:
 
 ---
 
+## Security tests
+
+Run:
+- `⌘U` in Xcode, or
+- `xcodebuild test -scheme NovaKey -destination 'platform=iOS Simulator,name=iPhone 15'`
+
+Security-critical paths are covered by:
+- `PairQRDecodeTests`
+- `PairingManagerTests`
+- `ClientStatusTests`
+- `ClipboardManagerTests`
+
+
 ## Security Notes
 
 * Post-quantum key exchange (Kyber768 / ML-KEM)
