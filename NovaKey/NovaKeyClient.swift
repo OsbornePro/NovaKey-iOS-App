@@ -19,20 +19,19 @@ final class NovaKeyClientV3 {
         case rateLimit = 0x07
         case cryptoFail = 0x08
 
-        // NEW: daemon couldn't inject, but successfully copied to clipboard (Wayland fallback, etc.)
+        // server could not inject, but did copy to clipboard successfully
         case okClipboard = 0x09
 
         case internalError = 0x7F
+
+        var isSuccess: Bool {
+            self == .ok || self == .okClipboard
+        }
     }
 
     struct ServerResponse {
         let status: Status
         let message: String
-
-        /// Convenience: treat OK + OKClipboard as success
-        var isSuccess: Bool {
-            status == .ok || status == .okClipboard
-        }
     }
 
     enum ClientError: Error, LocalizedError {
@@ -69,7 +68,7 @@ final class NovaKeyClientV3 {
             throw ClientError.sendFailed("internal: protocol frame too short")
         }
 
-        // Optional sanity check (helps catch future mismatches)
+        // Optional sanity check
         let declared = Int(UInt16(frame[0]) << 8 | UInt16(frame[1]))
         let actualPayload = frame.count - 2
         if declared != actualPayload {
