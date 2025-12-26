@@ -442,7 +442,7 @@ struct ContentView: View {
     
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
     
-                // ✅ UX: show daemon message on clipboard-success if provided
+                // UX: show daemon message on clipboard-success if provided
                 if resp.status == .okClipboard {
                     let m = resp.message.trimmingCharacters(in: .whitespacesAndNewlines)
                     toast(m.isEmpty ? "Copied to clipboard on \(targetSnapshot.name)" : m)
