@@ -34,7 +34,7 @@ This is a **QA-ready checklist** reviewers can follow.
 * Wait past token TTL
 * Scan QR
 
-✅ Expected: clear error (“QR expired”)
+✅ Expected: clear error (*“QR expired”*)
 
 ---
 
@@ -48,7 +48,7 @@ This is a **QA-ready checklist** reviewers can follow.
 
 ## B. Injection Tests
 
-### B1. Direct Injection (X11/macOS/Windows)
+### B1. Direct Injection (*X11/macOS/Windows*)
 
 * Armed
 * Approved
@@ -108,28 +108,8 @@ This is a **QA-ready checklist** reviewers can follow.
 ## C. UX Validation
 
 * Clipboard success shows different icon/message
-* Typed success shows “Sent”
+* Typed success shows “*Sent*”
 * All failures show actionable messages
 * No silent retries without user awareness
 
 ---
-
-## Final Note
-
-You now have:
-
-* A **defensible threat model**
-* **Apple-safe privacy wording**
-* A **clear security story**
-* A **repeatable test plan**
-
-This is *well above* the bar for both open-source and commercial security apps.
-
-If you want next:
-
-* 📄 `SECURITY.md` rewrite for the mobile app
-* 🧪 Automated test scaffolding
-* 🧠 Whitepaper-style crypto appendix
-* 🏷️ App Store marketing copy that doesn’t trigger review flags
-
-Just say the word.
