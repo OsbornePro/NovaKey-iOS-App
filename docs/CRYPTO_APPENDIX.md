@@ -1,8 +1,25 @@
 # Cryptographic Appendix
+This appendix is part of the full cryptographic audit set.
+
+➡️ **For complete iOS + daemon coverage, see:**  
+[Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+
+➡️ **For implementation mapping, see:**  
+- [iOS Crypto Traceability](CRYPTO_TRACEABILITY.md)  
+- [Daemon Crypto Traceability](CRYPTO_TRACEABILITY_DAEMON.md)
+
 
 **NovaKey Secure Input System**
 
-*Last updated: 2025-01-XX*
+*Last updated: 2025-12-26*
+
+> **Navigation**
+>
+> - 🔐 [Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+> - 🧠 [Threat Model Diagram (PDF)](NovaKey_Threat_Model_Diagram.pdf)
+> - 📋 [iOS Crypto Traceability](CRYPTO_TRACEABILITY.md)
+> - 🖥️ [Daemon Crypto Traceability](CRYPTO_TRACEABILITY_DAEMON.md)
+> - 🧪 [Security Test Plan](SECURITY_TEST_PLAN.md)
 
 ---
 
@@ -239,3 +256,8 @@ NovaKey’s cryptographic design emphasizes:
 The system favors conservative choices over novelty and avoids unnecessary complexity.
 
 ---
+
+**Related Documents**
+- [Threat Model Diagram](NovaKey_Threat_Model_Diagram.pdf)
+- [QR Pairing Visual](NovaKey_QR_Pairing_Visual.pdf)
+

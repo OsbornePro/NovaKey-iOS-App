@@ -1,4 +1,10 @@
 # Cryptographic Traceability – Daemon Alignment
+This document maps cryptographic claims to concrete **desktop daemon** implementation files.
+
+➡️ Start here for high-level context:  
+[Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+
+
 **NovaKey Desktop Daemon (cmd/novakey)**
 
 _Last updated: 2025-12-26_
@@ -11,6 +17,14 @@ implementation locations (Go), using exact file:line anchors from:
 It complements:
 - iOS: `docs/CRYPTO_TRACEABILITY.md`
 - System design: `docs/CRYPTO_APPENDIX.md`
+
+> **Navigation**
+>
+> - 🔐 [Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+> - 🧠 [Threat Model Diagram (PDF)](NovaKey_Threat_Model_Diagram.pdf)
+> - 📋 [iOS Crypto Traceability](CRYPTO_TRACEABILITY.md)
+> - 🖥️ [Daemon Crypto Traceability](CRYPTO_TRACEABILITY_DAEMON.md)
+> - 🧪 [Security Test Plan](SECURITY_TEST_PLAN.md)
 
 ---
 
@@ -136,3 +150,8 @@ security controls around decrypted plaintext.)
 - Replay detection is implemented as a **nonce cache per deviceID**.
 
 ---
+
+**Related**
+- [iOS Crypto Traceability](CRYPTO_TRACEABILITY.md)
+- [Threat Model Diagram](NovaKey_Threat_Model_Diagram.pdf)
+

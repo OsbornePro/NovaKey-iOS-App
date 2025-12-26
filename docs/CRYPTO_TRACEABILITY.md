@@ -1,7 +1,14 @@
 # Cryptographic Traceability Matrix
+This document maps cryptographic claims to concrete **iOS application** code paths.
+
+➡️ For full system coverage, also see:
+- [Daemon Crypto Traceability](CRYPTO_TRACEABILITY_DAEMON.md)
+- [Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+
+
 **NovaKey iOS Application**
 
-_Last updated: 2025-01-XX_
+_Last updated: 2025-12-26_
 
 This document maps each cryptographic and security claim made by NovaKey to
 concrete implementation locations in the iOS codebase and corresponding tests.
@@ -11,6 +18,14 @@ review inquiries.
 Where cryptographic primitives are implemented in native modules, this document
 explicitly calls that out; Swift code is responsible for orchestration, framing,
 and trust decisions.
+
+> **Navigation**
+>
+> - 🔐 [Crypto Audit Appendix (Combined, PDF)](NovaKey_Crypto_Audit_Appendix_Combined.pdf)
+> - 🧠 [Threat Model Diagram (PDF)](NovaKey_Threat_Model_Diagram.pdf)
+> - 📋 [iOS Crypto Traceability](CRYPTO_TRACEABILITY.md)
+> - 🖥️ [Daemon Crypto Traceability](CRYPTO_TRACEABILITY_DAEMON.md)
+> - 🧪 [Security Test Plan](SECURITY_TEST_PLAN.md)
 
 ---
 
@@ -104,4 +119,10 @@ These exclusions are intentional and documented.
 * Swift code handles orchestration, not crypto math
 * No cloud key escrow or analytics
 * No user input contents stored or transmitted to servers
+
+---
+
+**Audit Context**
+- [Threat Model Diagram](NovaKey_Threat_Model_Diagram.pdf)
+- [Security Test Plan](SECURITY_TEST_PLAN.md)
 
