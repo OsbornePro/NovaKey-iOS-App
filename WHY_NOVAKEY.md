@@ -1,14 +1,36 @@
-# Why NovaKey
+# Why NovaKey?
 
 ## The Problem
 
-Typing secrets on a keyboard is risky:
+I could say typing secrets on a keyboard is risky because of:
 
 * Keyloggers
 * Screen capture malware
 * Remote desktop recording
 * Shoulder surfing
 * Clipboard leaks
+
+Beyond these technical risks, the real pain point is human:
+
+- Memorizing strong passwords is exhausting.
+- One forgotten master password locks you out of every other credential.
+- Weak or reused master passwords become the single point of failure for the whole vault.
+
+
+## The NovaKey Goal
+
+Never memorize a password again.
+We want a solution where the master secret is stored securely, offline, and outside the attack surface of everyday computing.
+Avoiding keyloggers is just an added security bonus to justify this application.
+  
+## Why NovaKey Solves It
+
+- Zero‑knowledge storage: NovaKey holds the master password in a hardware‑isolated enclave, never exposing it to the OS or network.
+- Resistant to keyloggers, screen capture, clipboard theft, and shoulder surfing because the secret never leaves the device in plaintext.
+- Single‑click retrieval: Unlock your password manager with a biometric or PIN, eliminating the mental load of remembering a complex master phrase.
+- Backup‑ready: Encrypted backups let you recover the master secret without re‑creating it, preserving both security and convenience.
+
+In short, NovaKey removes the weakest link—human memory—from the password‑management chain while defending against the most common credential‑theft vectors.
 
 ---
 
