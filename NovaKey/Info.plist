@@ -7,5 +7,10 @@
 		<key>NSAllowsArbitraryLoadsInLocalNetwork</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_novakey._tcp</string>
+	</array>
 </dict>
 </plist>

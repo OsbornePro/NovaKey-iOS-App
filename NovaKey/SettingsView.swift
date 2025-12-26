@@ -50,7 +50,7 @@ struct SettingsView: View {
                          : "Clipboard will auto-clear after the selected time and may also clear when the app backgrounds.")
                 }
 
-                Section("Security") {
+                Section("Security") { 
                     Toggle("Fewer Face ID Prompts", isOn: $requireFreshBiometric)
                 }
 

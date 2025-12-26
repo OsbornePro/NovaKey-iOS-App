@@ -43,6 +43,7 @@
 		B9EE18752EFF1FA0000F3019 /* ClientStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */; };
 		B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */; };
 		B9EE18792EFF2440000F3019 /* TechnicalDetailsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */; };
+		B9EE187B2EFF468E000F3019 /* PairingPasteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -115,6 +116,7 @@
 		B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientStatusTests.swift; sourceTree = "<group>"; };
 		B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 		B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechnicalDetailsSheet.swift; sourceTree = "<group>"; };
+		B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingPasteSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +196,7 @@
 				B94716052EF9BE400011D282 /* PairQR.swift */,
 				B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */,
 				B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */,
+				B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */,
 			);
 			path = NovaKey;
 			sourceTree = "<group>";
@@ -375,6 +378,7 @@
 				B94715E12EF733F70011D282 /* NovaKeyClient.swift in Sources */,
 				B94715FA2EF8AC090011D282 /* NovaKeyProtocolV3.swift in Sources */,
 				B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */,
+				B9EE187B2EFF468E000F3019 /* PairingPasteSheet.swift in Sources */,
 				B94715DF2EF733BF0011D282 /* AddSecretView.swift in Sources */,
 				B94715F82EF8ABE40011D282 /* PairingRecord.swift in Sources */,
 				B94715E52EF734340011D282 /* KeyChainVault.swift in Sources */,
@@ -563,7 +567,7 @@
 				INFOPLIST_FILE = NovaKey/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Scan QR codes to pair NovaKey with your computer.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "NovaKey uses Face ID to unlock secrets before copying or sending.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs local network access to pair with your computer.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs access to your local network to pair with and send secrets to NovaKey-Daemon on your computer.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -597,7 +601,7 @@
 				INFOPLIST_FILE = NovaKey/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Scan QR codes to pair NovaKey with your computer.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "NovaKey uses Face ID to unlock secrets before copying or sending.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs local network access to pair with your computer.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NovaKey needs access to your local network to pair with and send secrets to NovaKey-Daemon on your computer.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

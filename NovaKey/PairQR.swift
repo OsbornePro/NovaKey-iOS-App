@@ -2,16 +2,13 @@
 //  PairQR.swift
 //  NovaKey
 //
-//  Supports BOTH:
-//   - “small QR” bootstrap flow (recommended):
-//       QR:  novakey://pair?v=2&host=...&port=...&token=...
-//       QR alt: novakey://pair?v=2&addr=host:port&token=...
-//       QR alt: novakey://pair?host=...&port=...&token=...   (v optional; defaults to 2)
-//       GET  http://host:port/pair/bootstrap?token=...
-//       POST http://host:port/pair/complete?token=...
+//  Small QR bootstrap flow (current):
+//    QR:  novakey://pair?v=4&host=...&port=...&token=...&fp=...&exp=...
+//    GET  http://host:port/pair/bootstrap?token=...
+//    POST http://host:port/pair/complete?token=...
 //
-//   - Legacy “big QR” flow (optional):
-//       QR:  novakey://pair?data=...  (base64url(zlib(JSON)))
+//  Legacy big QR (optional):
+//    novakey://pair?data=... (base64url(zlib(JSON)))
 //
 
 import Foundation
@@ -51,6 +48,8 @@ struct PairBootstrapLink: Equatable {
     let host: String
     let port: Int
     let token: String
+    let fp16Hex: String?      // optional, but your daemon includes it
+    let expUnix: Int64?       // optional, but your daemon includes it
 }
 
 /// The big blob returned by GET /pair/bootstrap
@@ -63,7 +62,7 @@ struct PairBootstrapResponse: Decodable {
     let expires_at_unix: Int64
 }
 
-/// Legacy “big QR” payload (if you still ever generate data=... somewhere)
+/// Legacy “big QR” payload
 struct PairQR: Decodable {
     let pair_v: Int
     let device_id: String
@@ -76,27 +75,15 @@ struct PairQR: Decodable {
 
 // MARK: - Decode QR
 
-/// Decode either:
-///  - Small QR bootstrap link (preferred)
-///  - Legacy big QR “data=” payload (zlib+base64url JSON)
-///
-/// This decoder is intentionally permissive about URL shape because
-/// different QR encoders / platforms can place "pair" in host OR path.
 func decodeNovaKeyPairQRLink(_ payload: String) throws -> PairBootstrapLink {
     guard let url = URL(string: payload) else {
         throw PairQRDecodeError.notNovaKeyPair
     }
 
-    // Must be our custom scheme
     guard (url.scheme ?? "").lowercased() == "novakey" else {
         throw PairQRDecodeError.notNovaKeyPair
     }
 
-    // Accept:
-    // - novakey://pair?...            (host == "pair")
-    // - novakey://pair/whatever?...   (host == "pair", path starts with "/...")
-    // - novakey:///pair?...           (host == nil/empty, path contains "/pair")
-    // - novakey://pairing?...         (host variant)
     let hostLower = (url.host ?? "").lowercased()
     let pathLower = url.path.lowercased()
 
@@ -119,36 +106,43 @@ func decodeNovaKeyPairQRLink(_ payload: String) throws -> PairBootstrapLink {
 
     // Legacy big QR?
     if let dataParam = items.first(where: { $0.name == "data" })?.value, !dataParam.isEmpty {
-        // Keep legacy support: caller can decide whether to use it,
-        // but we decode here just to validate it's ours.
         _ = try decodeNovaKeyPairQR(payload)
-        // For your app flow, you currently don't use this path directly.
-        // Returning badResponse keeps existing behavior if someone scans legacy big QR.
         throw PairQRDecodeError.badResponse
     }
 
-    // --- Small QR bootstrap flow ---
-    // v is optional; default to 2.
+    // v optional; daemon currently uses v=4 for QR
     let v: Int = {
         if let vStr = items.first(where: { $0.name == "v" })?.value,
            let parsed = Int(vStr) {
             return parsed
         }
-        return 2
+        return 4
     }()
 
-    // Require token
     guard let token = items.first(where: { $0.name == "token" })?.value, !token.isEmpty else {
         throw PairQRDecodeError.missingParam("token")
     }
 
-    // Accept either:
-    //  - host + port
-    //  - addr=host:port
+    // Optional: exp (unix seconds)
+    let expUnix: Int64? = {
+        guard let s = items.first(where: { $0.name == "exp" })?.value, let n = Int64(s) else { return nil }
+        return n
+    }()
+
+    if let expUnix, expUnix < Int64(Date().timeIntervalSince1970) {
+        throw PairQRDecodeError.expired
+    }
+
+    // Optional: fp
+    let fp16Hex: String? = {
+        let s = items.first(where: { $0.name == "fp" })?.value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (s?.isEmpty == false) ? s : nil
+    }()
+
     if let addr = items.first(where: { $0.name == "addr" || $0.name == "server" || $0.name == "server_addr" })?.value,
        !addr.isEmpty {
         let (h, p) = try parseHostPort(addr)
-        return PairBootstrapLink(v: v, host: h, port: p, token: token)
+        return PairBootstrapLink(v: v, host: h, port: p, token: token, fp16Hex: fp16Hex, expUnix: expUnix)
     }
 
     guard let host = items.first(where: { $0.name == "host" })?.value, !host.isEmpty else {
@@ -160,10 +154,10 @@ func decodeNovaKeyPairQRLink(_ payload: String) throws -> PairBootstrapLink {
         throw PairQRDecodeError.badPort
     }
 
-    return PairBootstrapLink(v: v, host: host, port: port, token: token)
+    return PairBootstrapLink(v: v, host: host, port: port, token: token, fp16Hex: fp16Hex, expUnix: expUnix)
 }
 
-/// Legacy decode (optional) — only used if you still generate big “data=” QRs.
+/// Legacy decode — only used if you still generate big “data=” QRs.
 func decodeNovaKeyPairQR(_ payload: String) throws -> PairQR {
     guard let url = URL(string: payload),
           (url.scheme ?? "").lowercased() == "novakey",
@@ -194,7 +188,7 @@ func decodeNovaKeyPairQR(_ payload: String) throws -> PairQR {
     return qr
 }
 
-// MARK: - Bootstrap Fetch + Complete
+// MARK: - Bootstrap Fetch + Complete (HTTP flow)
 
 func fetchPairBootstrap(_ link: PairBootstrapLink) async throws -> PairBootstrapResponse {
     var comps = URLComponents()
@@ -209,6 +203,7 @@ func fetchPairBootstrap(_ link: PairBootstrapLink) async throws -> PairBootstrap
     var req = URLRequest(url: url)
     req.httpMethod = "GET"
     req.timeoutInterval = 5
+    req.cachePolicy = .reloadIgnoringLocalCacheData
 
     do {
         let (data, resp) = try await URLSession.shared.data(for: req)
@@ -243,6 +238,7 @@ func postPairComplete(_ link: PairBootstrapLink) async throws {
     var req = URLRequest(url: url)
     req.httpMethod = "POST"
     req.timeoutInterval = 5
+    req.cachePolicy = .reloadIgnoringLocalCacheData
 
     do {
         let (_, resp) = try await URLSession.shared.data(for: req)
@@ -255,7 +251,7 @@ func postPairComplete(_ link: PairBootstrapLink) async throws {
     }
 }
 
-// MARK: - Convert bootstrap -> PairingBlob JSON your PairingManager expects
+// MARK: - Convert bootstrap -> Pairing JSON your PairingManager expects
 
 func makePairingJSON(from bootstrap: PairBootstrapResponse) throws -> String {
     struct PairingBlob: Codable {
@@ -281,7 +277,6 @@ func makePairingJSON(from bootstrap: PairBootstrapResponse) throws -> String {
 // MARK: - Helpers
 
 private func parseHostPort(_ s: String) throws -> (String, Int) {
-    // Accept "host:port"
     let parts = s.split(separator: ":")
     guard parts.count == 2, let port = Int(parts[1]), port > 0 else {
         throw PairQRDecodeError.badPort
