@@ -382,6 +382,15 @@ struct ContentView: View {
         let requireFresh = requireFreshBiometric
         let doApprove = autoApproveBeforeSend
     
+        func ensureSuccess(_ resp: NovaKeyClientV3.ServerResponse) throws {
+            if resp.status.isSuccess { return }
+            // Treat any non-success as an error surfaced to the user.
+            let msg = resp.message.isEmpty ? "Server returned \(resp.status)" : resp.message
+            throw NSError(domain: "NovaKey", code: Int(resp.status.rawValue), userInfo: [
+                NSLocalizedDescriptionKey: msg
+            ])
+        }
+    
         do {
             secretSnapshot = await MainActor.run {
                 guard let item = selectedSecret else { return nil }
@@ -415,19 +424,28 @@ struct ContentView: View {
                 requireFreshBiometric: requireFresh
             )
     
+            // Optionally pre-approve
             if doApprove {
-                _ = try await client.sendApprove(pairing: pairing)
+                let approveResp = try await client.sendApprove(pairing: pairing)
+                try ensureSuccess(approveResp)
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
     
-            let resp: NovaKeyClientV3.ServerResponse
+            // Send inject; if it fails and doApprove==true, retry approve+inject once (your existing behavior)
+            let injectResp: NovaKeyClientV3.ServerResponse
             do {
-                resp = try await client.sendInject(secret: secret, pairing: pairing)
+                let r = try await client.sendInject(secret: secret, pairing: pairing)
+                try ensureSuccess(r) // ok or okClipboard
+                injectResp = r
             } catch {
                 if doApprove {
-                    _ = try await client.sendApprove(pairing: pairing)
+                    let approveResp2 = try await client.sendApprove(pairing: pairing)
+                    try ensureSuccess(approveResp2)
                     try? await Task.sleep(nanoseconds: 250_000_000)
-                    resp = try await client.sendInject(secret: secret, pairing: pairing)
+    
+                    let r2 = try await client.sendInject(secret: secret, pairing: pairing)
+                    try ensureSuccess(r2)
+                    injectResp = r2
                 } else {
                     throw error
                 }
@@ -440,14 +458,21 @@ struct ContentView: View {
                     try? modelContext.save()
                 }
     
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-    
-                // UX: show daemon message on clipboard-success if provided
-                if resp.status == .okClipboard {
-                    let m = resp.message.trimmingCharacters(in: .whitespacesAndNewlines)
-                    toast(m.isEmpty ? "Copied to clipboard on \(targetSnapshot.name)" : m)
-                } else {
+                switch injectResp.status {
+                case .ok:
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
                     toast("Sent to \(targetSnapshot.name)")
+    
+                case .okClipboard:
+                    // Visually different + use daemon message if provided
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    let msg = injectResp.message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    toast(msg.isEmpty ? "📋 Copied to clipboard on \(targetSnapshot.name)" : "📋 \(msg)")
+    
+                default:
+                    // Should be unreachable due to ensureSuccess(), but keep safe.
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    toast("Send failed")
                 }
             }
         } catch {
