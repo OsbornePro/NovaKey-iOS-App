@@ -285,6 +285,9 @@ Security-critical paths are covered by:
 * Optional Two-Man Mode
 * Process whitelisting supported on the daemon
 
+![Post-Quantum Key Establishment](https://img.shields.io/badge/security-post--quantum%20key%20establishment-blueviolet "Uses ML-KEM-768 (Kyber768) for session establishment")
+
+
 ---
 
 ## Troubleshooting
