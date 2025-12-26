@@ -456,7 +456,7 @@ private struct PairingPasteSheet: View {
 
     @State private var showQRScanner = false
 
-    // ✅ New: pairing confirmation before any network calls
+    // pairing confirmation before any network calls
     @State private var pendingLink: PairBootstrapLink?
     @State private var showPairConfirmAlert = false
     @State private var pendingConfirmTitle = "Confirm Pairing"
@@ -575,7 +575,7 @@ private struct PairingPasteSheet: View {
         }
     }
 
-    // ✅ Step 1: decode + confirm (no network yet)
+    // Step 1: decode + confirm (no network yet)
     @MainActor
     private func handleQRScanned(_ payload: String) async {
         errorText = nil
@@ -594,7 +594,7 @@ private struct PairingPasteSheet: View {
         }
     }
 
-    // ✅ Step 2: network + save
+    // Step 2: network + save
     @MainActor
     private func performQRPair(_ link: PairBootstrapLink) async {
         errorText = nil
