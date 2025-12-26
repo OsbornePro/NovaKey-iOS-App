@@ -382,17 +382,63 @@ struct ContentView: View {
         let requireFresh = requireFreshBiometric
         let doApprove = autoApproveBeforeSend
     
-        func ensureSuccess(_ resp: NovaKeyClientV3.ServerResponse) throws {
-            if resp.status.isSuccess { return }
-            // Treat any non-success as an error surfaced to the user.
-            let msg = resp.message.isEmpty ? "Server returned \(resp.status)" : resp.message
-            throw NSError(domain: "NovaKey", code: Int(resp.status.rawValue), userInfo: [
-                NSLocalizedDescriptionKey: msg
-            ])
+        func clean(_ s: String) -> String {
+            s.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     
-        func cleanMessage(_ s: String) -> String {
-            s.trimmingCharacters(in: .whitespacesAndNewlines)
+        func friendlyStatusMessage(
+            _ status: NovaKeyClientV3.Status,
+            targetName: String
+        ) -> String {
+            switch status {
+            case .notArmed:
+                return "Computer isn’t armed. Arm NovaKey-Daemon, then try again."
+            case .needsApprove:
+                return "Computer needs approval. Approve on the computer, then try again."
+            case .notPaired:
+                return "Not paired with \(targetName). Re-pair and try again."
+            case .badRequest:
+                return "Request rejected by the computer."
+            case .badTimestamp:
+                return "Clock check failed. Ensure your phone and computer time are correct."
+            case .replay:
+                return "Replay detected. Try sending again."
+            case .rateLimit:
+                return "Rate limited by the computer. Wait a moment and try again."
+            case .cryptoFail:
+                return "Secure channel failed. Re-pair with the computer and try again."
+            case .internalError:
+                return "Computer error. Try again (or check daemon logs)."
+            case .ok, .okClipboard:
+                return "Success"
+            }
+        }
+    
+        func ensureSuccess(_ resp: NovaKeyClientV3.ServerResponse, targetName: String) throws {
+            if resp.status.isSuccess { return }
+    
+            let raw = clean(resp.message)
+            // Debug log keeps the *real* daemon reason.
+            if raw.isEmpty {
+                print("NovaKey send failed: status=\(resp.status) message=<empty>")
+            } else {
+                print("NovaKey send failed: status=\(resp.status) message=\(raw)")
+            }
+    
+            // User-facing message prefers friendly text; only fall back to raw if we got something useful.
+            let friendly = friendlyStatusMessage(resp.status, targetName: targetName)
+            let uiMsg: String
+            if !raw.isEmpty, raw.count <= 160 {
+                // If daemon gave a short, concrete reason, show it (better for troubleshooting),
+                // but still keep it human-friendly by prefixing with the friendly summary.
+                uiMsg = "\(friendly)\n\nDetails: \(raw)"
+            } else {
+                uiMsg = friendly
+            }
+    
+            throw NSError(domain: "NovaKey", code: Int(resp.status.rawValue), userInfo: [
+                NSLocalizedDescriptionKey: uiMsg
+            ])
         }
     
         do {
@@ -431,7 +477,7 @@ struct ContentView: View {
             // Optionally pre-approve
             if doApprove {
                 let approveResp = try await client.sendApprove(pairing: pairing)
-                try ensureSuccess(approveResp)
+                try ensureSuccess(approveResp, targetName: targetSnapshot.name)
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
     
@@ -439,16 +485,16 @@ struct ContentView: View {
             let injectResp: NovaKeyClientV3.ServerResponse
             do {
                 let r = try await client.sendInject(secret: secret, pairing: pairing)
-                try ensureSuccess(r) // ok or okClipboard
+                try ensureSuccess(r, targetName: targetSnapshot.name) // ok or okClipboard
                 injectResp = r
             } catch {
                 if doApprove {
                     let approveResp2 = try await client.sendApprove(pairing: pairing)
-                    try ensureSuccess(approveResp2)
+                    try ensureSuccess(approveResp2, targetName: targetSnapshot.name)
                     try? await Task.sleep(nanoseconds: 250_000_000)
     
                     let r2 = try await client.sendInject(secret: secret, pairing: pairing)
-                    try ensureSuccess(r2)
+                    try ensureSuccess(r2, targetName: targetSnapshot.name)
                     injectResp = r2
                 } else {
                     throw error
@@ -468,24 +514,18 @@ struct ContentView: View {
                     toast("Sent to \(targetSnapshot.name)")
     
                 case .okClipboard:
-                    // Treat as success, but visually differentiate.
+                    // Success, but visually differentiate.
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
     
-                    let msg = cleanMessage(injectResp.message)
+                    let msg = clean(injectResp.message)
                     if msg.isEmpty {
                         toast("📋 Copied to clipboard on \(targetSnapshot.name)")
                     } else {
-                        // Prefer showing daemon's exact message, but keep clipboard marker.
-                        // Avoid double-prefix if message already includes it.
-                        if msg.lowercased().contains("clipboard") {
-                            toast("📋 \(msg)")
-                        } else {
-                            toast("📋 \(msg)")
-                        }
+                        toast("📋 \(msg)")
                     }
     
                 default:
-                    // Should be unreachable due to ensureSuccess(), but keep safe.
+                    // Should be unreachable due to ensureSuccess()
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                     toast("Send failed")
                 }
