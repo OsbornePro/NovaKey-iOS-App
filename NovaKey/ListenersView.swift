@@ -18,23 +18,19 @@ struct ListenersView: View {
 
     @Query(sort: \PairedListener.displayName) private var listeners: [PairedListener]
 
-    // Persist "Add listener" draft fields across background/relaunch
     @AppStorage("listeners.add.name") private var name = ""
     @AppStorage("listeners.add.host") private var host = ""
     @AppStorage("listeners.add.portText") private var portText = "60768"
     @AppStorage("listeners.add.notes") private var notes = ""
     @AppStorage("listeners.add.makeSendTarget") private var makeSendTarget = false
 
-    // Pairing sheet
     @State private var pairingFor: PairedListener?
 
-    // Edit sheet (name + notes only)
     @State private var editing: PairedListener?
     @State private var editNameText: String = ""
     @State private var editNotesText: String = ""
     @State private var showEditSheet = false
 
-    // Toast
     @State private var toastText: String?
     @State private var showToast = false
 
@@ -117,8 +113,6 @@ struct ListenersView: View {
                     }
                 }
             }
-
-            // Edit sheet (safe: name + notes only)
             .sheet(isPresented: $showEditSheet) {
                 EditListenerSheet(
                     title: "Edit Listener",
@@ -130,7 +124,6 @@ struct ListenersView: View {
                     editing = nil
                 }
             }
-
             .overlay(alignment: .bottom) {
                 if showToast, let toastText {
                     Text(toastText)
@@ -207,7 +200,6 @@ struct ListenersView: View {
                 presentPairSheet(for: l)
             }
 
-            // DEBUG BUTTON (goes HERE)
             Button("Debug: Check Paired") {
                 let loaded = PairingManager.load(host: l.host, port: l.port)
                 if loaded != nil {
@@ -306,7 +298,6 @@ struct ListenersView: View {
         modelContext.insert(new)
         try? modelContext.save()
 
-        // Clear persisted drafts after successful add
         name = ""
         host = ""
         portText = "60768"
@@ -439,7 +430,7 @@ private struct EditListenerSheet: View {
     }
 }
 
-// MARK: - Pairing paste sheet (Scan QR -> fetch /pair/bootstrap -> save -> /pair/complete)
+// MARK: - Pairing paste sheet (Scan QR -> confirm -> fetch /pair/bootstrap -> save -> /pair/complete)
 
 private struct PairingPasteSheet: View {
     enum Result {
@@ -455,10 +446,7 @@ private struct PairingPasteSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var editorFocused: Bool
 
-    // Store the key as a REAL stored property, set in init (no self-use-before-init)
     private let draftKey: String
-
-    // Dynamic AppStorage key initialized in init
     @AppStorage private var jsonText: String
 
     @State private var errorText: String?
@@ -466,8 +454,13 @@ private struct PairingPasteSheet: View {
     @State private var mismatchExpected = ""
     @State private var mismatchGot = ""
 
-    // QR scanner
     @State private var showQRScanner = false
+
+    // ✅ New: pairing confirmation before any network calls
+    @State private var pendingLink: PairBootstrapLink?
+    @State private var showPairConfirmAlert = false
+    @State private var pendingConfirmTitle = "Confirm Pairing"
+    @State private var pendingConfirmMessage = ""
 
     init(listener: PairedListener, onDone: @escaping (Result) -> Void) {
         self.listener = listener
@@ -541,20 +534,32 @@ private struct PairingPasteSheet: View {
             } message: {
                 Text("Listener is \(mismatchExpected) but pairing blob is \(mismatchGot).\n\nCreate/update a listener that matches, then pair again.")
             }
+            .alert(pendingConfirmTitle, isPresented: $showPairConfirmAlert) {
+                Button("Cancel", role: .cancel) {
+                    pendingLink = nil
+                }
+                Button("Pair") {
+                    guard let link = pendingLink else { return }
+                    pendingLink = nil
+                    Task { await performQRPair(link) }
+                }
+            } message: {
+                Text(pendingConfirmMessage)
+            }
             .sheet(isPresented: $showQRScanner) {
                 if #available(iOS 16.0, *),
                    DataScannerViewController.isSupported,
                    DataScannerViewController.isAvailable {
                     QRScannerView { payload in
                         showQRScanner = false
-                        Task { await handleQRBootstrap(payload) }
+                        Task { await handleQRScanned(payload) }
                     } onCancel: {
                         showQRScanner = false
                     }
                 } else {
                     AVFoundationQRScannerView { payload in
                         showQRScanner = false
-                        Task { await handleQRBootstrap(payload) }
+                        Task { await handleQRScanned(payload) }
                     } onCancel: {
                         showQRScanner = false
                     }
@@ -570,16 +575,34 @@ private struct PairingPasteSheet: View {
         }
     }
 
+    // ✅ Step 1: decode + confirm (no network yet)
     @MainActor
-    private func handleQRBootstrap(_ payload: String) async {
+    private func handleQRScanned(_ payload: String) async {
         errorText = nil
 
         do {
             let link = try decodeNovaKeyPairQRLink(payload)
+            pendingLink = link
+
+            // Confirm against the listener’s host:port (what the user believes they’re pairing)
+            let expected = "\(listener.host):\(listener.port)"
+            pendingConfirmTitle = "Confirm Pairing"
+            pendingConfirmMessage = "Pair NovaKey with:\n\n\(expected)\n\nOnly continue if this matches the computer showing the QR code."
+            showPairConfirmAlert = true
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    // ✅ Step 2: network + save
+    @MainActor
+    private func performQRPair(_ link: PairBootstrapLink) async {
+        errorText = nil
+
+        do {
             let bootstrap = try await fetchPairBootstrap(link)
             let json = try makePairingJSON(from: bootstrap)
 
-            // persists automatically
             jsonText = json
 
             let record = try PairingManager.parsePairingJSON(json)
@@ -597,7 +620,6 @@ private struct PairingPasteSheet: View {
             try PairingManager.save(record)
             try await postPairComplete(link)
 
-            // clear draft after success
             jsonText = ""
 
             dismiss()
@@ -624,7 +646,6 @@ private struct PairingPasteSheet: View {
 
             try PairingManager.save(record)
 
-            // clear draft after success
             jsonText = ""
 
             dismiss()
