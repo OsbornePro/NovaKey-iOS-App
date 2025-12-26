@@ -1,164 +1,107 @@
-# 🔐 NovaKey iOS App – Security Overview
+# 🔐 NovaKey iOS App — Security Overview
 
-NovaKey is a companion iOS application designed to **securely store secrets locally** and **transmit them to a paired NovaKey listener** using strong cryptography and explicit user intent.
+NovaKey is designed to transmit high-value secrets from an iOS device to a trusted local listener **without exposing those secrets to keyboards, logs, analytics, or cloud services**.
 
-This document describes the **security model, guarantees, limitations, and threat assumptions** for the NovaKey iOS app.
-
----
-
-## 📱 Scope
-
-This document applies **only** to the **NovaKey iOS application**.
-
-The NovaKey desktop daemon (*listener*) has its **own security model and configuration controls**, documented separately.
+This document defines NovaKey’s threat model, cryptographic design, test-backed guarantees, and privacy posture.
 
 ---
 
-## 🧠 Threat Model
+## 1. Threat Model (STRIDE)
 
-### Assets Protected
+NovaKey uses the STRIDE framework to systematically identify and mitigate threats.
 
-* Secrets stored in the iOS app (*passwords, tokens, sensitive text*)
-* Pairing credentials used to authenticate a specific listener
-* User intent (*preventing silent or background transmission*)
+### STRIDE Table
 
-### Adversaries Considered
-
-* Network attackers (*MITM, replay, injection*)
-* Malicious or compromised remote servers
-* Accidental misuse (*wrong host, wrong device*)
-* Stolen iOS device without biometric access
-
-### Adversaries *Not* Fully Defended Against
-
-* A fully compromised iOS device (*kernel-level malware, jailbroken OS*)
-* A malicious paired listener that the user explicitly approved
-* Screen capture or camera attacks during QR pairing
-* Physical coercion of the device owner
-
-NovaKey makes **no claims** to defend against attackers who fully control the operating system or the user.
+| Threat | Description | Mitigation | Residual Risk |
+|------|------------|-----------|---------------|
+| Spoofing | Fake listener impersonation | Pairing QR + host:port binding | User pairs malicious host |
+| Tampering | Message modification | AEAD (XChaCha20-Poly1305) | Compromised OS |
+| Repudiation | User denies sending | Explicit UI + biometrics | Social dispute |
+| Info Disclosure | Secret leakage | Keychain + redacted logs | OS compromise |
+| DoS | Blocked sending | Timeouts + retries | Network failure |
+| Privilege Escalation | Unauthorized send | Biometric + approval gates | Trusted daemon misbehavior |
 
 ---
 
-## 🔑 Local Secret Storage
+## 2. Trust Boundaries
 
-* Secrets are stored **only on the device**
-* Secrets are saved in the **iOS Keychain**
-* Keychain entries are protected with:
+### Trusted
+- iOS Secure Enclave & Keychain
+- Explicit user actions
+- Paired listener after verification
 
-  * Face ID / Touch ID / device passcode
-  * `ThisDeviceOnly` access control
-* Secrets are **never displayed in plaintext** after saving
+### Untrusted
+- Network
+- Clipboard after timeout
+- Remote endpoints
+- Background processes
 
-If biometric authentication fails or is unavailable, secrets cannot be retrieved.
-
----
-
-## 📋 Clipboard Handling
-
-* Clipboard writes are **explicit user actions**
-* Clipboard contents are marked as **local-only**
-* Optional auto-clear timeout (*user configurable*)
-* Clipboard is cleared on backgrounding **only if NovaKey wrote it**
-* NovaKey will **not overwrite unrelated clipboard content**
-
-This minimizes the risk of secrets persisting unintentionally.
+NovaKey **fails closed** across all trust boundaries.
 
 ---
 
-## 🔗 Pairing Security
+## 3. Cryptography Summary
 
-### Pairing Properties
+| Purpose | Primitive |
+|------|---------|
+| Key exchange | ML-KEM-768 |
+| Encryption | XChaCha20-Poly1305 |
+| Authentication | Per-device symmetric keys |
+| Replay protection | Nonces + timestamps |
 
-* Pairing is **explicit and user-initiated**
-* Pairing requires scanning a **NovaKey-specific QR code**
-* Each pairing binds:
-
-  * A unique device ID
-  * A device-specific secret key
-  * A specific host and port
-
-### Protections
-
-* Host and port mismatches are rejected
-* Expired pairing tokens are rejected
-* Pairing credentials are stored securely in the iOS Keychain
-* Pairing data cannot be silently reused across hosts
-
-NovaKey **does not auto-pair** with unknown listeners.
+> NovaKey does **not** invent cryptography.
 
 ---
 
-## 🔐 Cryptography Overview
+## 4. Storage Guarantees
 
-NovaKey uses modern, well-reviewed cryptographic primitives:
-
-* **Key exchange:** ML-KEM (Kyber768)
-* **Encryption:** XChaCha20-Poly1305
-* **Authentication:** Device-bound keys
-* **Replay protection:** Nonces + freshness checks
-
-Cryptographic operations are handled by a dedicated crypto module and validated before use.
-
-NovaKey does **not** invent new cryptographic algorithms.
+- Secrets are **never stored in plaintext**
+- All secrets reside in **iOS Keychain**
+- Secrets are never logged or uploaded
+- Clipboard use is **explicit, local-only, and time-limited**
 
 ---
 
-## 🚫 What NovaKey Does *Not* Do
+## 5. Test-Backed Security Claims
 
-NovaKey intentionally does **not**:
+Every security property is enforced by automated tests.
 
-* Sync secrets to the cloud
-* Transmit secrets automatically or in the background
-* Allow silent pairing
-* Log or collect secret values
-* Claim to be “unhackable” or “military-grade”
-
-All sensitive actions require **direct user intent**.
-
----
-
-## 🧍 User Responsibility
-
-Users are responsible for:
-
-* Pairing only with listeners they trust
-* Verifying the host and port during pairing
-* Protecting their physical device
-* Reviewing daemon-side configuration and permissions
-
-NovaKey provides safeguards, but **trust boundaries matter**.
+| Claim | Tests |
+|-----|------|
+| Secrets require biometrics | `VaultAuthTests` |
+| Pairing mismatch rejected | `PairingManagerTests` |
+| Replay rejected | `ProtocolReplayTests` |
+| Clipboard auto-clear | `ClipboardManagerTests` |
+| `.okClipboard` treated as success | `ClientStatusTests` |
 
 ---
 
-## 🐞 Vulnerability Reporting
+## 6. Privacy & App Store Alignment
 
-If you discover a security issue:
+NovaKey:
+- ❌ Collects no personal data
+- ❌ Uses no analytics
+- ❌ Performs no tracking
+- ❌ Uploads no secrets
 
-📧 **Email:** [security@novakey.app](mailto:security@novakey.app)  
+All data is stored **locally on the device**.
+
+---
+
+## 7. Responsible Disclosure
+
+📧 [security@novakey.app](mailto:security@novakey.app)  
 🔑 **My PGP Key** https://downloads.osbornepro.com/publickey.asc  
-🔐 **Optional:** Encrypted reports are welcome  
-⏱️ **Response:** We aim to acknowledge reports promptly  
-  
-Please do **not** file sensitive issues in public trackers.
+🔐 Encrypted reports welcome  
+🚫 Do not disclose vulnerabilities publicly
 
 ---
 
-## 📄 Disclosure Policy
+## 8. What NovaKey Does NOT Claim
 
-* Confirmed vulnerabilities will be fixed as quickly as practical
-* Users will be notified when updates address security issues
-* Credit is given to responsible reporters (*upon request*)
+- Protection from compromised OS
+- Protection from malicious paired listener
+- Anonymity
+- Forward secrecy beyond protocol design
 
----
-
-## ✅ Summary
-
-NovaKey’s iOS app is designed to:
-
-* Keep secrets local and protected
-* Require explicit user intent for every sensitive action
-* Use modern, conservative cryptography
-* Fail safely when trust assumptions are violated
-
-Security is a **core design goal**, not an afterthought.
+Security is **explicit, intentional, and user-controlled**.
