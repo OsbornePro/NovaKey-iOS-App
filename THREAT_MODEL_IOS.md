@@ -26,7 +26,7 @@ The design goal is to **reduce keyboard exposure**, **prevent network compromise
 | Paired daemon | Semi-trusted, explicitly paired               |
 | Local network | Untrusted                                     |
 | Internet      | Untrusted                                     |
-| Desktop OS    | Potentially hostile (keyloggers, malware)     |
+| Desktop OS    | Potentially hostile (*keyloggers, malware*)     |
 
 ---
 
