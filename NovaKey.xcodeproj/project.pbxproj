@@ -37,6 +37,11 @@
 		B94716022EF9A7AE0011D282 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716012EF9A7AE0011D282 /* AboutView.swift */; };
 		B94716042EF9A7C50011D282 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716032EF9A7C50011D282 /* HelpView.swift */; };
 		B94716062EF9BE400011D282 /* PairQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716052EF9BE400011D282 /* PairQR.swift */; };
+		B9EE186F2EFF1F48000F3019 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE186E2EFF1F48000F3019 /* TestSupport.swift */; };
+		B9EE18712EFF1F67000F3019 /* PairQRDecodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */; };
+		B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */; };
+		B9EE18752EFF1FA0000F3019 /* ClientStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */; };
+		B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +108,11 @@
 		B94716032EF9A7C50011D282 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		B94716052EF9BE400011D282 /* PairQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQR.swift; sourceTree = "<group>"; };
 		B94716072EF9CAEF0011D282 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B9EE186E2EFF1F48000F3019 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
+		B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQRDecodeTests.swift; sourceTree = "<group>"; };
+		B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManagerTests.swift; sourceTree = "<group>"; };
+		B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientStatusTests.swift; sourceTree = "<group>"; };
+		B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -197,6 +207,11 @@
 			isa = PBXGroup;
 			children = (
 				B94715C12EF354350011D282 /* NovaKeyTests.swift */,
+				B9EE186E2EFF1F48000F3019 /* TestSupport.swift */,
+				B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */,
+				B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */,
+				B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */,
+				B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */,
 			);
 			path = NovaKeyTests;
 			sourceTree = "<group>";
@@ -376,7 +391,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */,
+				B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */,
+				B9EE18712EFF1F67000F3019 /* PairQRDecodeTests.swift in Sources */,
+				B9EE18752EFF1FA0000F3019 /* ClientStatusTests.swift in Sources */,
 				B94715C22EF354350011D282 /* NovaKeyTests.swift in Sources */,
+				B9EE186F2EFF1F48000F3019 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
