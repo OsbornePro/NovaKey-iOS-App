@@ -391,6 +391,10 @@ struct ContentView: View {
             ])
         }
     
+        func cleanMessage(_ s: String) -> String {
+            s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    
         do {
             secretSnapshot = await MainActor.run {
                 guard let item = selectedSecret else { return nil }
@@ -431,7 +435,7 @@ struct ContentView: View {
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
     
-            // Send inject; if it fails and doApprove==true, retry approve+inject once (your existing behavior)
+            // Send inject; if it fails and doApprove==true, retry approve+inject once
             let injectResp: NovaKeyClientV3.ServerResponse
             do {
                 let r = try await client.sendInject(secret: secret, pairing: pairing)
@@ -464,10 +468,21 @@ struct ContentView: View {
                     toast("Sent to \(targetSnapshot.name)")
     
                 case .okClipboard:
-                    // Visually different + use daemon message if provided
-                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    let msg = injectResp.message.trimmingCharacters(in: .whitespacesAndNewlines)
-                    toast(msg.isEmpty ? "📋 Copied to clipboard on \(targetSnapshot.name)" : "📋 \(msg)")
+                    // Treat as success, but visually differentiate.
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+    
+                    let msg = cleanMessage(injectResp.message)
+                    if msg.isEmpty {
+                        toast("📋 Copied to clipboard on \(targetSnapshot.name)")
+                    } else {
+                        // Prefer showing daemon's exact message, but keep clipboard marker.
+                        // Avoid double-prefix if message already includes it.
+                        if msg.lowercased().contains("clipboard") {
+                            toast("📋 \(msg)")
+                        } else {
+                            toast("📋 \(msg)")
+                        }
+                    }
     
                 default:
                     // Should be unreachable due to ensureSuccess(), but keep safe.
