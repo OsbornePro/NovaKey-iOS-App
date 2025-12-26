@@ -1,18 +1,19 @@
-# Threat Model — NovaKey iOS App
+# 🛡️ Threat Model — NovaKey iOS App
 
 ## Overview
 
-The NovaKey iOS app is a **trusted secret origin**. It stores high-value secrets locally and transmits them securely to a paired NovaKey-Daemon instance for controlled injection into the active desktop application.
-
+The NovaKey iOS app is a **trusted secret origin**. 
+It stores high-value secrets locally and transmits them securely to a paired NovaKey-Daemon instance for controlled injection into the active desktop application.
+  
 The design goal is to **reduce keyboard exposure**, **prevent network compromise**, and **fail safely** under hostile conditions.
 
 ---
 
 ## Assets Protected
 
-* User secrets (passwords, recovery keys, tokens)
-* Pairing credentials (per-device PSK)
-* User intent (explicit approval before secret release)
+* User secrets (*passwords, recovery keys, tokens*)
+* Pairing credentials (*per-device PSK*)
+* User intent (*explicit approval before secret release*)
 * Biometric authentication state
 
 ---
@@ -70,7 +71,7 @@ The design goal is to **reduce keyboard exposure**, **prevent network compromise
 * Explicit user action required
 * Biometric gating
 * Optional “fresh biometric required”
-* Two-man approval (daemon-side)
+* Two-man approval (*daemon-side*)
 
 ---
 
@@ -89,7 +90,7 @@ The design goal is to **reduce keyboard exposure**, **prevent network compromise
 
 ---
 
-## Out of Scope (Explicitly)
+## Out of Scope (*Explicitly*)
 
 * Fully compromised iOS device
 * Jailbroken OS
@@ -105,4 +106,4 @@ NovaKey assumes:
 
 > **The desktop may be hostile; the phone is the root of trust.**
 
-The app is designed to **fail closed**, **require user intent**, and **surface degraded security paths clearly** (e.g., clipboard fallback).
+The app is designed to **fail closed**, **require user intent**, and **surface degraded security paths clearly** (*e.g., clipboard fallback*).
