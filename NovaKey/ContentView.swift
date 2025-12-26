@@ -21,11 +21,11 @@ struct ContentView: View {
         var id: String { rawValue }
     }
 
-    // ✅ Persist which sheet is open across app switches / scene recreation
+    // Persist which sheet is open across app switches / scene recreation
     @SceneStorage("ContentView.activeSheet") private var activeSheetRaw: String?
     @State private var activeSheet: ActiveSheet?
 
-    // ✅ Persist search text (optional)
+    // Persist search text (optional)
     @SceneStorage("ContentView.searchText") private var searchText: String = ""
 
     @State private var selectedSecret: SecretItem?
@@ -95,7 +95,7 @@ struct ContentView: View {
                     Text("This cannot be undone.")
                 }
 
-                // ✅ Only ONE sheet modifier
+                // Only ONE sheet modifier
                 .sheet(item: $activeSheet) { sheet in
                     switch sheet {
                     case .about:
@@ -382,14 +382,14 @@ struct ContentView: View {
         let targetSnapshot: (host: String, port: Int, name: String)?
         let requireFresh = requireFreshBiometric
         let doApprove = autoApproveBeforeSend
-
+    
         do {
             secretSnapshot = await MainActor.run {
                 guard let item = selectedSecret else { return nil }
                 return (item.id, item.name)
             }
             guard let secretSnapshot else { return }
-
+    
             targetSnapshot = await MainActor.run {
                 guard let target = listeners.first(where: { $0.isDefault }) else { return nil }
                 return (target.host, target.port, target.displayName)
@@ -401,7 +401,7 @@ struct ContentView: View {
                 }
                 return
             }
-
+    
             guard let pairing = PairingManager.load(host: targetSnapshot.host, port: targetSnapshot.port) else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -409,39 +409,46 @@ struct ContentView: View {
                 }
                 return
             }
-
+    
             let secret = try KeyChainVault.shared.readSecret(
                 for: secretSnapshot.id,
                 prompt: "Send \(secretSnapshot.name) to \(targetSnapshot.name)",
                 requireFreshBiometric: requireFresh
             )
-
+    
             if doApprove {
                 _ = try await client.sendApprove(pairing: pairing)
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
-
+    
+            let resp: NovaKeyClientV3.ServerResponse
             do {
-                _ = try await client.sendInject(secret: secret, pairing: pairing)
+                resp = try await client.sendInject(secret: secret, pairing: pairing)
             } catch {
                 if doApprove {
                     _ = try await client.sendApprove(pairing: pairing)
                     try? await Task.sleep(nanoseconds: 250_000_000)
-                    _ = try await client.sendInject(secret: secret, pairing: pairing)
+                    resp = try await client.sendInject(secret: secret, pairing: pairing)
                 } else {
                     throw error
                 }
             }
-
+    
             await MainActor.run {
                 if let item = secrets.first(where: { $0.id == secretSnapshot.id }) {
                     item.lastUsedAt = .now
                     item.updatedAt = .now
                     try? modelContext.save()
                 }
-
+    
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Sent to \(targetSnapshot.name)")
+    
+                // UX tweak: Wayland / clipboard-success status
+                if resp.status == .okClipboard {
+                    toast("Copied to clipboard on \(targetSnapshot.name)")
+                } else {
+                    toast("Sent to \(targetSnapshot.name)")
+                }
             }
         } catch {
             await MainActor.run {
