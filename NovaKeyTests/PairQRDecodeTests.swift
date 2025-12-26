@@ -24,8 +24,7 @@ final class PairQRDecodeTests: XCTestCase {
         let qr = "https://example.com?q=1"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
             guard let e = err as? PairQRDecodeError else {
-                XCTFail("wrong error type")
-                return
+                return XCTFail("wrong error type: \(type(of: err))")
             }
             XCTAssertEqual(e, .notNovaKeyPair)
         }
@@ -34,9 +33,11 @@ final class PairQRDecodeTests: XCTestCase {
     func testDecodeMissingHost() {
         let qr = "novakey://pair?v=2&port=60769&token=abc123"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
-            guard case PairQRDecodeError.missingParam(let p) = err else {
-                XCTFail("expected missingParam")
-                return
+            guard let e = err as? PairQRDecodeError else {
+                return XCTFail("wrong error type: \(type(of: err))")
+            }
+            guard case .missingParam(let p) = e else {
+                return XCTFail("expected missingParam, got \(e)")
             }
             XCTAssertEqual(p, "host")
         }
@@ -45,7 +46,9 @@ final class PairQRDecodeTests: XCTestCase {
     func testDecodeBadPort() {
         let qr = "novakey://pair?v=2&host=10.0.0.5&port=notaport&token=abc123"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
-            guard let e = err as? PairQRDecodeError else { return XCTFail("wrong error type") }
+            guard let e = err as? PairQRDecodeError else {
+                return XCTFail("wrong error type: \(type(of: err))")
+            }
             XCTAssertEqual(e, .badPort)
         }
     }
@@ -53,12 +56,13 @@ final class PairQRDecodeTests: XCTestCase {
     func testDecodeMissingToken() {
         let qr = "novakey://pair?v=2&host=10.0.0.5&port=60769"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
-            guard case PairQRDecodeError.missingParam(let p) = err else {
-                XCTFail("expected missingParam")
-                return
+            guard let e = err as? PairQRDecodeError else {
+                return XCTFail("wrong error type: \(type(of: err))")
+            }
+            guard case .missingParam(let p) = e else {
+                return XCTFail("expected missingParam, got \(e)")
             }
             XCTAssertEqual(p, "token")
         }
     }
 }
-

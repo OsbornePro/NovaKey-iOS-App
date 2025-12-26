@@ -17,7 +17,7 @@
 import Foundation
 import Compression
 
-enum PairQRDecodeError: Error, LocalizedError {
+enum PairQRDecodeError: Error, LocalizedError, Equatable {
     case notNovaKeyPair
     case missingParam(String)
     case badPort

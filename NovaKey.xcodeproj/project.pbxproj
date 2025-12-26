@@ -42,6 +42,7 @@
 		B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */; };
 		B9EE18752EFF1FA0000F3019 /* ClientStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */; };
 		B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */; };
+		B9EE18792EFF2440000F3019 /* TechnicalDetailsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -113,6 +114,7 @@
 		B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManagerTests.swift; sourceTree = "<group>"; };
 		B9EE18742EFF1FA0000F3019 /* ClientStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientStatusTests.swift; sourceTree = "<group>"; };
 		B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
+		B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechnicalDetailsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +193,7 @@
 				B94716032EF9A7C50011D282 /* HelpView.swift */,
 				B94716052EF9BE400011D282 /* PairQR.swift */,
 				B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */,
+				B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */,
 			);
 			path = NovaKey;
 			sourceTree = "<group>";
@@ -366,6 +369,7 @@
 				B94715F12EF8A2310011D282 /* VaultTransferViews.swift in Sources */,
 				B91468042EFA047A00C8BF71 /* AVFoundationQRScannerView.swift in Sources */,
 				B94715DD2EF733A40011D282 /* ListenersView.swift in Sources */,
+				B9EE18792EFF2440000F3019 /* TechnicalDetailsSheet.swift in Sources */,
 				B94715E92EF8919D0011D282 /* ClipboardManager.swift in Sources */,
 				B94716002EF926940011D282 /* QRScannerView.swift in Sources */,
 				B94715E12EF733F70011D282 /* NovaKeyClient.swift in Sources */,
