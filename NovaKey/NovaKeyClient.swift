@@ -18,12 +18,21 @@ final class NovaKeyClientV3 {
         case replay = 0x06
         case rateLimit = 0x07
         case cryptoFail = 0x08
+
+        // NEW: daemon couldn't inject, but successfully copied to clipboard (Wayland fallback, etc.)
+        case okClipboard = 0x09
+
         case internalError = 0x7F
     }
 
     struct ServerResponse {
         let status: Status
         let message: String
+
+        /// Convenience: treat OK + OKClipboard as success
+        var isSuccess: Bool {
+            status == .ok || status == .okClipboard
+        }
     }
 
     enum ClientError: Error, LocalizedError {
@@ -125,17 +134,7 @@ final class NovaKeyClientV3 {
         return ServerResponse(status: status, message: msg)
     }
 
-
-
     // MARK: - Helpers
-
-    /// Prefix with u32 big-endian length (common TCP framing).
-    private static func lengthPrefixU32BE(_ data: Data) -> Data {
-        var len = UInt32(data.count).bigEndian
-        var out = Data(bytes: &len, count: 4)
-        out.append(data)
-        return out
-    }
 
     private func receiveExact(_ conn: NWConnection, count: Int, timeoutSeconds: Double) async throws -> Data? {
         if count <= 0 { return Data() }
