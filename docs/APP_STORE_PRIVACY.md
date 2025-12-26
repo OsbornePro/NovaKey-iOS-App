@@ -1,6 +1,7 @@
 # 🏷️ NovaKey App Store Privacy Disclosure
 
-This document mirrors App Store Connect privacy declarations.
+This document mirrors NovaKey’s App Store privacy declarations and is intended to
+match App Store Connect “App Privacy” responses.
 
 ---
 
@@ -9,26 +10,43 @@ This document mirrors App Store Connect privacy declarations.
 NovaKey does **not collect**:
 - Personal data
 - Usage data
-- Analytics
+- Analytics data
 - Identifiers
+- Diagnostics
+
+NovaKey does not transmit any user data to external servers.
 
 ---
 
-## Data Usage
+## Data Processing
+
+NovaKey processes limited data **locally on the user’s devices only**, including:
+- Paired device configuration
+- Encrypted session metadata
+
+User input (typed text or clipboard contents):
+- Is processed transiently in memory
+- Is never stored persistently
+- Is never uploaded or shared
+
+---
+
+## Data Storage
 
 NovaKey:
-- Stores secrets locally in iOS Keychain
-- Stores pairing data locally
-- Never uploads secrets
+- Stores pairing and configuration data locally
+- Uses the iOS Keychain and system-provided storage protections
+- Does not store keystrokes, clipboard contents, or message payloads
 
 ---
 
-## Clipboard
+## Clipboard Access
 
-Clipboard use:
-- Is user-initiated
-- Is local-only
-- Auto-clears by configuration
+Clipboard access:
+- Is initiated explicitly by the user
+- Is used only to deliver content to a paired device
+- Is not read in the background
+- Is not logged or retained
 
 ---
 
@@ -38,10 +56,13 @@ NovaKey:
 - Does not track users
 - Does not use advertising SDKs
 - Does not share data with third parties
+- Does not link data to user identity
 
 ---
 
-## Suggested App Store Text
+## Suggested App Store Privacy Text
 
-> “This app does not collect or share user data. All sensitive information is stored locally on your device and protected by iOS security features.”
+> “NovaKey does not collect or share user data. Configuration and pairing information
+> is stored locally on the user’s device and protected using iOS security features.
+> User input is processed transiently and is not stored.”
 
