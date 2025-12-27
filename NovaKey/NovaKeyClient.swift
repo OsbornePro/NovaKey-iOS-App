@@ -59,12 +59,12 @@ final class NovaKeyPairClient {
 
         try await connect(conn)
 
-        // 1) Route line
+        // 1) Route line (router.go reads this)
         try await send(conn, Data("NOVAK/1 /pair\n".utf8))
 
-        // 2) Hello JSON line
-        // IMPORTANT: if daemon requires fp, include it here.
+        // 2) Hello JSON line (pairing_proto.go reads this)
         var helloObj: [String: Any] = ["op": "hello", "v": 1, "token": token]
+        // daemon ignores unknown fields, so including fp is safe (but not required)
         if let fp16Hex, !fp16Hex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             helloObj["fp"] = fp16Hex
         }
@@ -74,12 +74,17 @@ final class NovaKeyPairClient {
         let serverKeyLine = try await readLine(conn, maxBytes: 16 * 1024)
         let serverKey = try decodeServerKey(serverKeyLine)
 
-        // 4) Build+send register frame (binary)
-        let tokenRawURLB64 = token // keep current behavior; your Go bridge expects the raw token string
+        // 4) Build register frame (binary) and send it as FINAL (half-close write side)
+        // Your Go KEM bridge expects tokenRawURLB64 = the base64url token string from QR.
+        let tokenRawURLB64 = token
         let registerFrame = try buildRegisterFrame(serverKey, tokenRawURLB64)
-        try await send(conn, registerFrame)
 
-        // 5) Read ack to close/idle
+        // *** CRITICAL ***
+        // Daemon reads ciphertext with io.ReadAll() until EOF,
+        // so we MUST signal end-of-stream after sending the register frame.
+        try await sendFinal(conn, registerFrame)
+
+        // 5) Read ack (daemon writes: [24-byte nonce][ciphertext])
         let ack = try await readToCloseOrIdle(conn, maxBytes: 256 * 1024)
         guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
@@ -92,7 +97,6 @@ final class NovaKeyPairClient {
 
     private func connect(_ conn: NWConnection) async throws {
         let waiter = _ConnWaiter()
-
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             waiter.lock.lock()
             waiter.cont = cont
@@ -101,7 +105,6 @@ final class NovaKeyPairClient {
             conn.stateUpdateHandler = { st in
                 waiter.lock.lock()
                 defer { waiter.lock.unlock() }
-
                 guard waiter.finished == false else { return }
 
                 switch st {
@@ -125,6 +128,16 @@ final class NovaKeyPairClient {
     private func send(_ conn: NWConnection, _ data: Data) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             conn.send(content: data, completion: .contentProcessed { err in
+                if let err { cont.resume(throwing: err) }
+                else { cont.resume(returning: ()) }
+            })
+        }
+    }
+
+    // Send final payload and mark stream complete (half-close write side).
+    private func sendFinal(_ conn: NWConnection, _ data: Data) async throws {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            conn.send(content: data, contentContext: .finalMessage, isComplete: true, completion: .contentProcessed { err in
                 if let err { cont.resume(throwing: err) }
                 else { cont.resume(returning: ()) }
             })
@@ -190,7 +203,6 @@ final class NovaKeyPairClient {
         return sk
     }
 }
-
 
 // MARK: - Send client (/v3)
 
