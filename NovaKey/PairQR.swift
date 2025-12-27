@@ -6,9 +6,6 @@
 //    novakey://pair?v=3|4&host=...&port=...&token=...&fp=...&exp=...
 //    novakey://pair?v=3|4&addr=host:port&token=...&fp=...&exp=...
 //
-//  NOTE: Allowing v=4 here does NOT mean “crypto v4”.
-//  It only means the QR/URL format version. Crypto remains NovaKey v3.
-//
 
 import Foundation
 

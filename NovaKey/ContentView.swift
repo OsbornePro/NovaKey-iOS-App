@@ -378,7 +378,7 @@ struct ContentView: View {
                 return (target.host, target.port, target.displayName)
             }
 
-            guard let pairing = PairingManager.load(host: targetSnapshot.host, port: targetSnapshot.port) else {
+            guard let pairing = PairingManager.load() else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     toast("Not paired with \(targetSnapshot.name)")

@@ -141,7 +141,7 @@ struct ListenersView: View {
     // MARK: - Row
 
     private func listenerRow(_ l: PairedListener) -> some View {
-        let isPaired = (PairingManager.load(host: l.host, port: l.port) != nil)
+        let isPaired = (PairingManager.load() != nil)
         let notesTrimmed = l.notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return Button {
@@ -201,7 +201,7 @@ struct ListenersView: View {
             }
 
             Button("Debug: Check Paired") {
-                let loaded = PairingManager.load(host: l.host, port: l.port)
+                let loaded = PairingManager.load()
                 if loaded != nil {
                     toast("✅ Keychain has pairing for \(l.host):\(l.port)")
                 } else {

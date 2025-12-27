@@ -44,7 +44,62 @@ enum PairingErrors: Error, LocalizedError {
 
 enum PairingManager {
     private static let service = "com.novakey.pairing.v3"
+    private static let account = "primary"
 
+    static func save(_ record: PairingRecord) throws {
+        let data = try JSONEncoder().encode(record)
+
+        let del: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(del as CFDictionary)
+
+        let add: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        let status = SecItemAdd(add as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw NSError(domain: "Keychain", code: Int(status))
+        }
+    }
+
+    static func load() -> PairingRecord? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(q as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data else {
+            // TEMP DEBUG:
+            // print("PairingManager.load status:", status)
+            return nil
+        }
+        return try? JSONDecoder().decode(PairingRecord.self, from: data)
+    }
+    private static func parseHostPort(_ s: String) throws -> (String, Int) {
+        // Accept "host:port"
+        let parts = s.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let port = Int(parts[1]),
+              port > 0 else {
+            throw PairingErrors.invalidServerAddr
+        }
+
+        let host = String(parts[0])
+        guard !host.isEmpty else { throw PairingErrors.invalidServerAddr }
+        return (host, port)
+    }
     /// Accepts either:
     /// 1) nvpair blob:
     ///    { v, device_id, device_key_hex, server_addr, server_kyber768_pub }
@@ -112,59 +167,6 @@ enum PairingManager {
         )
     }
 
-    static func keychainAccount(host: String, port: Int) -> String {
-        "\(host):\(port)"
-    }
-
-    static func save(_ record: PairingRecord) throws {
-        let account = keychainAccount(host: record.serverHost, port: record.serverPort)
-        let data = try JSONEncoder().encode(record)
-
-        // delete existing
-        let del: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        SecItemDelete(del as CFDictionary)
-
-        let add: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        ]
-        let status = SecItemAdd(add as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw NSError(domain: "Keychain", code: Int(status))
-        }
-    }
-
-    static func load(host: String, port: Int) -> PairingRecord? {
-        let account = keychainAccount(host: host, port: port)
-        let q: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(q as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return try? JSONDecoder().decode(PairingRecord.self, from: data)
-    }
-
-    private static func parseHostPort(_ s: String) throws -> (String, Int) {
-        // Accept "host:port"
-        let parts = s.split(separator: ":")
-        guard parts.count == 2, let port = Int(parts[1]) else { throw PairingErrors.invalidServerAddr }
-        let host = String(parts[0])
-        guard !host.isEmpty, port > 0 else { throw PairingErrors.invalidServerAddr }
-        return (host, port)
-    }
 }
 
 // MARK: - Hex helper
