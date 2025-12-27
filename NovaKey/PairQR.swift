@@ -4,15 +4,13 @@
 //
 //  QR contents (bootstrap link schema; NOT crypto protocol version):
 //    novakey://pair?v=3|4&host=...&port=...&token=...&fp=...&exp=...
-//    novakey://pair?v=3|4&addr=host:port&token=...
+//    novakey://pair?v=3|4&addr=host:port&token=...&fp=...&exp=...
 //
 //  NOTE: Allowing v=4 here does NOT mean “crypto v4”.
 //  It only means the QR/URL format version. Crypto remains NovaKey v3.
 //
 
 import Foundation
-// v optional; NovaKey uses v3 on iOS; ignore any other value (daemon may emit v=4)
-let v: Int = 3
 
 enum PairQRDecodeError: Error, LocalizedError, Equatable {
     case notNovaKeyPair
@@ -35,103 +33,87 @@ enum PairQRDecodeError: Error, LocalizedError, Equatable {
 }
 
 struct PairBootstrapLink: Equatable {
-    /// QR schema version (3 or 4). Not the crypto protocol version.
-    let v: Int
+    let version: Int
     let host: String
     let port: Int
-    let token: String
+    let token: String       // token ONLY
     let fp16Hex: String?
     let expUnix: Int64?
 }
 
-func decodeNovaKeyPairQRLink(_ payload: String) throws -> PairBootstrapLink {
-    guard let url = URL(string: payload) else {
-        throw PairQRDecodeError.notNovaKeyPair
+func decodeNovaKeyPairQRLink(_ raw: String) throws -> PairBootstrapLink {
+    let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard let comps = URLComponents(string: s) else {
+        throw PairQRDecodeError.badResponse
     }
-    guard (url.scheme ?? "").lowercased() == "novakey" else {
-        throw PairQRDecodeError.notNovaKeyPair
-    }
-
-    // Handle multiple possible shapes:
-    //  1) novakey://pair?...        => host="", path="/pair"
-    //  2) novakey://pairing?...     => host="", path="/pairing"
-    //  3) novakey://x/pair?...      => host="x", path="/pair"
-    //  4) novakey://pair?... if encoded as novakey://pair (no slash) could put "pair" in host
-    let hostLower = (url.host ?? "").lowercased()
-    let pathLower = url.path.lowercased()
-
-    let looksLikePair: Bool = {
-        if hostLower == "pair" || hostLower == "pairing" { return true }
-        if pathLower == "/pair" || pathLower == "/pairing" { return true }
-        if pathLower.hasPrefix("/pair/") || pathLower.hasPrefix("/pairing/") { return true }
-        if pathLower.contains("/pair") { return true } // last resort
-        return false
-    }()
-
-    guard looksLikePair else {
+    guard (comps.scheme ?? "").lowercased() == "novakey" else {
         throw PairQRDecodeError.notNovaKeyPair
     }
 
-    guard let comps = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+    // Expect: novakey://pair?... (host part is "pair", path usually empty)
+    let hostPart = (comps.host ?? "").lowercased()
+    let pathPart = comps.path.lowercased()
+    if hostPart != "pair" && pathPart != "/pair" && pathPart != "pair" {
         throw PairQRDecodeError.notNovaKeyPair
     }
 
     let items = comps.queryItems ?? []
-
-    // v is QR schema version. Default to 3 if absent.
-    let v: Int = {
-        if let vStr = items.first(where: { $0.name == "v" })?.value,
-           let parsed = Int(vStr) {
-            return parsed
-        }
-        return 3
-    }()
-
-    // Allow v=3 or v=4 (QR schema), reject anything else.
-    guard v == 3 || v == 4 else {
-        throw PairQRDecodeError.unsupportedVersion(v)
+    func q(_ name: String) -> String? {
+        items.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame })?.value
     }
 
-    guard let token = items.first(where: { $0.name == "token" })?.value, !token.isEmpty else {
+    let version = Int(q("v") ?? "") ?? 0
+    if version != 0 && version != 3 && version != 4 {
+        throw PairQRDecodeError.unsupportedVersion(version)
+    }
+
+    guard let token = q("token"), !token.isEmpty else {
         throw PairQRDecodeError.missingParam("token")
     }
 
-    // Optional exp
-    let expUnix: Int64? = {
-        guard let s = items.first(where: { $0.name == "exp" })?.value,
-              let n = Int64(s) else { return nil }
-        return n
-    }()
+    // host/port can be provided either as host+port OR addr=host:port
+    var host: String?
+    var port: Int?
 
-    if let expUnix, expUnix < Int64(Date().timeIntervalSince1970) {
-        throw PairQRDecodeError.expired
+    if let h = q("host"), !h.isEmpty,
+       let pStr = q("port"), let p = Int(pStr), p > 0 {
+        host = h
+        port = p
+    } else if let addr = q("addr"), !addr.isEmpty {
+        let hp = try parseHostPort(addr)
+        host = hp.0
+        port = hp.1
     }
 
-    // Optional fp
-    let fp16Hex: String? = {
-        let s = items.first(where: { $0.name == "fp" })?.value?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return (s?.isEmpty == false) ? s : nil
-    }()
-
-    // Either addr=host:port OR host/port
-    if let addr = items.first(where: { $0.name == "addr" || $0.name == "server" || $0.name == "server_addr" })?.value,
-       !addr.isEmpty {
-        let (h, p) = try parseHostPort(addr)
-        return PairBootstrapLink(v: v, host: h, port: p, token: token, fp16Hex: fp16Hex, expUnix: expUnix)
+    guard let finalHost = host, !finalHost.isEmpty else {
+        throw PairQRDecodeError.missingParam("host/addr")
     }
-
-    guard let host = items.first(where: { $0.name == "host" })?.value, !host.isEmpty else {
-        throw PairQRDecodeError.missingParam("host")
-    }
-
-    guard let portStr = items.first(where: { $0.name == "port" })?.value,
-          let port = Int(portStr),
-          port > 0 else {
+    guard let finalPort = port, finalPort > 0 else {
         throw PairQRDecodeError.badPort
     }
 
-    return PairBootstrapLink(v: v, host: host, port: port, token: token, fp16Hex: fp16Hex, expUnix: expUnix)
+    let fp = q("fp")
+    let exp: Int64? = {
+        guard let s = q("exp"), !s.isEmpty else { return nil }
+        return Int64(s)
+    }()
+
+    if let exp, exp > 0 {
+        let now = Int64(Date().timeIntervalSince1970)
+        if exp < now {
+            throw PairQRDecodeError.expired
+        }
+    }
+
+    return PairBootstrapLink(
+        version: version,
+        host: finalHost,
+        port: finalPort,
+        token: token,
+        fp16Hex: fp,
+        expUnix: exp
+    )
 }
 
 private func parseHostPort(_ s: String) throws -> (String, Int) {

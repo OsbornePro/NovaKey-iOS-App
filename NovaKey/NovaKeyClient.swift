@@ -27,7 +27,7 @@ struct PairServerKey: Codable {
     let v: Int
     let kid: String
     let kyber_pub_b64: String
-    let fp16_hex: String
+    let fp16_hex: String?      // make optional so decode won’t fail
     let expires_unix: Int64
 }
 
@@ -45,6 +45,7 @@ final class NovaKeyPairClient {
         host: String,
         port: Int,
         token: String,
+        fp16Hex: String? = nil,
         buildRegisterFrame: @escaping (_ serverKey: PairServerKey, _ tokenRawURLB64: String) throws -> Data,
         handleAck: @escaping (_ serverKey: PairServerKey, _ ack: Data, _ tokenRawURLB64: String) throws -> Void
     ) async throws {
@@ -62,7 +63,11 @@ final class NovaKeyPairClient {
         try await send(conn, Data("NOVAK/1 /pair\n".utf8))
 
         // 2) Hello JSON line
-        let helloObj: [String: Any] = ["op": "hello", "v": 1, "token": token]
+        // IMPORTANT: if daemon requires fp, include it here.
+        var helloObj: [String: Any] = ["op": "hello", "v": 1, "token": token]
+        if let fp16Hex, !fp16Hex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            helloObj["fp"] = fp16Hex
+        }
         try await send(conn, try jsonLine(helloObj))
 
         // 3) server_key line
@@ -70,7 +75,8 @@ final class NovaKeyPairClient {
         let serverKey = try decodeServerKey(serverKeyLine)
 
         // 4) Build+send register frame (binary)
-        let registerFrame = try buildRegisterFrame(serverKey, token)
+        let tokenRawURLB64 = token // keep current behavior; your Go bridge expects the raw token string
+        let registerFrame = try buildRegisterFrame(serverKey, tokenRawURLB64)
         try await send(conn, registerFrame)
 
         // 5) Read ack to close/idle
@@ -79,7 +85,7 @@ final class NovaKeyPairClient {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
 
-        try handleAck(serverKey, ack, token)
+        try handleAck(serverKey, ack, tokenRawURLB64)
     }
 
     // MARK: - NW helpers (Swift 6 safe)
@@ -179,11 +185,12 @@ final class NovaKeyPairClient {
         let trimmed = line.trimmingTrailingNewlines()
         guard let sk = try? JSONDecoder().decode(PairServerKey.self, from: trimmed),
               sk.op == "server_key", sk.v == 1 else {
-            throw NovaKeyPairError.protocolError("bad server_key response")
+            throw NovaKeyPairError.protocolError("bad server_key response: \(String(decoding: trimmed, as: UTF8.self))")
         }
         return sk
     }
 }
+
 
 // MARK: - Send client (/v3)
 

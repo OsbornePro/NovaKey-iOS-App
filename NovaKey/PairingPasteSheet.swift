@@ -29,7 +29,7 @@ struct PairingPasteSheet: View {
     @FocusState private var editorFocused: Bool
 
     private let draftKey: String
-    @AppStorage private var jsonText: String
+    @State private var jsonText: String = ""
 
     @State private var errorText: String?
     @State private var isWorking = false
@@ -49,10 +49,7 @@ struct PairingPasteSheet: View {
     init(listener: PairedListener, onDone: @escaping (Result) -> Void) {
         self.listener = listener
         self.onDone = onDone
-
-        let key = "pairing.json.draft.\(listener.host):\(listener.port)"
-        self.draftKey = key
-        _jsonText = AppStorage(wrappedValue: "", key)
+        self.draftKey = "pairing.json.draft.\(listener.host):\(listener.port)"
     }
 
     var body: some View {
@@ -83,6 +80,7 @@ struct PairingPasteSheet: View {
                         errorText = nil
                         if let s = UIPasteboard.general.string, !s.isEmpty {
                             jsonText = s
+                            editorFocused = true
                         } else {
                             errorText = "Clipboard is empty."
                         }
@@ -105,7 +103,7 @@ struct PairingPasteSheet: View {
                     Button(role: .destructive) {
                         guard !isWorking else { return }
                         errorText = nil
-                        jsonText = ""
+                        clearDraft()
                     } label: {
                         Label("Clear", systemImage: "xmark.circle")
                             .frame(maxWidth: .infinity)
@@ -187,13 +185,21 @@ struct PairingPasteSheet: View {
                    DataScannerViewController.isAvailable {
                     QRScannerView { payload in
                         showQRScanner = false
-                        Task { await handleQRScanned(payload) }
-                    } onCancel: { showQRScanner = false }
+                        jsonText = payload
+                        editorFocused = true
+                        // DO NOT call handleQRScanned here
+                    } onCancel: {
+                        showQRScanner = false
+                    }
                 } else {
                     AVFoundationQRScannerView { payload in
                         showQRScanner = false
-                        Task { await handleQRScanned(payload) }
-                    } onCancel: { showQRScanner = false }
+                        jsonText = payload
+                        editorFocused = true
+                        // ✅ DO NOT call handleQRScanned here
+                    } onCancel: {
+                        showQRScanner = false
+                    }
                     .ignoresSafeArea()
                 }
             }
@@ -210,6 +216,7 @@ struct PairingPasteSheet: View {
                         return
                     }
                     jsonText = s
+                    editorFocused = true
                 } catch {
                     errorText = error.localizedDescription
                 }
@@ -219,8 +226,25 @@ struct PairingPasteSheet: View {
             errorText = nil
             showMismatchAlert = false
             pendingLink = nil
+
+            // Load draft
+            jsonText = UserDefaults.standard.string(forKey: draftKey) ?? ""
+        }
+        .onChange(of: jsonText) { _, newValue in
+            // Save draft as user types / buttons insert text
+            UserDefaults.standard.set(newValue, forKey: draftKey)
         }
     }
+
+    // MARK: - Draft control (ONE place to clear)
+
+    @MainActor
+    private func clearDraft() {
+        jsonText = ""
+        UserDefaults.standard.removeObject(forKey: draftKey)
+    }
+
+    // MARK: - Actions
 
     @MainActor
     private func saveAction() {
@@ -299,6 +323,7 @@ struct PairingPasteSheet: View {
                 host: link.host,
                 port: link.port,
                 token: link.token,
+                fp16Hex: link.fp16Hex,
                 buildRegisterFrame: { serverKey, tokenRawURLB64 in
                     serverKeyBox.value = serverKey
 
@@ -317,23 +342,18 @@ struct PairingPasteSheet: View {
                     }
 
                     let parts = try unpackRegisterBundle(bundleData)
-
                     registerCTBox.value = parts.ct
                     aeadKeyBox.value = parts.key
                     return parts.frame
                 },
-                handleAck: { serverKey, ack, _ in
-                    serverKeyBox.value = serverKey
-
+                handleAck: { _, ack, _ in
                     guard let regCT = registerCTBox.value,
                           let aeadKey = aeadKeyBox.value else {
                         throw NovaKeyPairError.protocolError("missing register state")
                     }
 
                     var err: NSError?
-                    let reg = regCT          // Data (non-optional)
-                    let key = aeadKey        // Data (non-optional)
-                    _ = NovakeykemDecryptPairAck(ack, reg, key, &err)
+                    _ = NovakeykemDecryptPairAck(ack, regCT, aeadKey, &err)
                     if let err { throw err }
                 }
             )
@@ -384,9 +404,12 @@ struct PairingPasteSheet: View {
             }
 
             try PairingManager.save(record)
-            jsonText = ""
-            dismiss()
-            onDone(.saved)
+
+            Task { @MainActor in
+                clearDraft()
+                dismiss()
+                onDone(.saved)
+            }
 
         } catch {
             errorText = error.localizedDescription
@@ -394,6 +417,8 @@ struct PairingPasteSheet: View {
         }
     }
 }
+
+// MARK: - Helpers
 
 private func randomHex(bytes: Int) -> String {
     var b = [UInt8](repeating: 0, count: bytes)
