@@ -85,7 +85,7 @@ final class NovaKeyPairClient {
         try await sendFinal(conn, registerFrame)
 
         // 5) Read ack (daemon writes: [24-byte nonce][ciphertext])
-        let ack = try await readToCloseOrIdle(conn, maxBytes: 256 * 1024)
+        let ack = try await readAck(conn, maxBytes: 256 * 1024)
         guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
@@ -202,6 +202,42 @@ final class NovaKeyPairClient {
         }
         return sk
     }
+    private func readExact(_ conn: NWConnection, count: Int, maxChunk: Int = 4096) async throws -> Data {
+        var out = Data()
+        out.reserveCapacity(count)
+
+        while out.count < count {
+            let need = count - out.count
+            let chunk = try await receive(conn, min: 1, max: min(maxChunk, need))
+            if chunk.isEmpty {
+                throw NovaKeyPairError.protocolError("connection closed while reading (got \(out.count)/\(count))")
+            }
+            out.append(chunk)
+        }
+        return out
+    }
+
+    private func readUntilClose(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
+        var out = Data()
+        while out.count < maxBytes {
+            let chunk = try await receive(conn, min: 1, max: 4096)
+            if chunk.isEmpty { break } // peer closed
+            out.append(chunk)
+        }
+        return out
+    }
+
+    private func readAck(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
+        let nonce = try await readExact(conn, count: 24)
+        let rest = try await readUntilClose(conn, maxBytes: maxBytes - 24)
+        let ack = nonce + rest
+
+        if ack.count < 24 + 16 {
+            throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
+        }
+        return ack
+    }
+
 }
 
 // MARK: - Send client (/v3)
