@@ -229,15 +229,31 @@ final class NovaKeyPairClient {
 
     private func readAck(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
         let nonce = try await readExact(conn, count: 24)
-        let rest = try await readUntilClose(conn, maxBytes: maxBytes - 24)
-        let ack = nonce + rest
 
+        var out = Data()
+        out.reserveCapacity(256)
+
+        var idleReads = 0
+        while (24 + out.count) < maxBytes {
+            let chunk = try await receive(conn, min: 1, max: 4096)
+            if chunk.isEmpty {
+                idleReads += 1
+                if idleReads >= 2 { break }   // stop after 2 empty reads
+            } else {
+                idleReads = 0
+                out.append(chunk)
+
+                // ACK payload should be small JSON; once we have a plausible minimum, stop.
+                if out.count >= 16 { break }  // AEAD tag minimum already satisfied
+            }
+        }
+
+        let ack = nonce + out
         if ack.count < 24 + 16 {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
         return ack
     }
-
 }
 
 // MARK: - Send client (/v3)

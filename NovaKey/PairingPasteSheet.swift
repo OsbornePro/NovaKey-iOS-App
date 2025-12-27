@@ -185,18 +185,14 @@ struct PairingPasteSheet: View {
                    DataScannerViewController.isAvailable {
                     QRScannerView { payload in
                         showQRScanner = false
-                        jsonText = payload
-                        editorFocused = true
-                        // DO NOT call handleQRScanned here
+                        Task { await handleQRScanned(payload) }
                     } onCancel: {
                         showQRScanner = false
                     }
                 } else {
                     AVFoundationQRScannerView { payload in
                         showQRScanner = false
-                        jsonText = payload
-                        editorFocused = true
-                        // ✅ DO NOT call handleQRScanned here
+                        Task { await handleQRScanned(payload) }
                     } onCancel: {
                         showQRScanner = false
                     }
@@ -281,12 +277,15 @@ struct PairingPasteSheet: View {
                 return
             }
 
+            // Safety prompt
             presentConfirm(for: link)
+
         } catch {
             errorText = error.localizedDescription
         }
     }
 
+    
     @MainActor
     private func presentConfirm(for link: PairBootstrapLink) {
         pendingLink = link
