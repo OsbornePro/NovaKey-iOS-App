@@ -17,15 +17,24 @@ struct NovaKeyApp: App {
     @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     private var appearanceMode: AppearanceMode { AppearanceMode(rawValue: appearanceModeRaw) ?? .system }
 
-    // Clipboard
-    @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
-    private var clipboardTimeout: ClipboardTimeout { ClipboardTimeout(rawValue: clipboardTimeoutRaw) ?? .s60 }
-
     @StateObject private var appLock = AppLock()
 
     private let container: ModelContainer = {
         let schema = Schema([SecretItem.self, PairedListener.self, LocalAccount.self])
-        let config = ModelConfiguration("NovaKeyStore_v3", schema: schema)
+
+        // Make an explicit store URL and ensure the directory exists.
+        let fm = FileManager.default
+        let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = appSupport.appendingPathComponent("NovaKey", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let storeURL = dir.appendingPathComponent("NovaKeyStore_v3.store")
+
+        let config = ModelConfiguration(
+            "NovaKeyStore_v3",
+            schema: schema,
+            url: storeURL
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [config])
@@ -45,18 +54,11 @@ struct NovaKeyApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
-                // Intentionally no clipboard behavior here.
-                // NovaKeyApp handles unlock + clipboard policy.
                 break
-
             case .inactive:
-                // Do nothing: iOS enters inactive for FaceID, paste prompts, Control Center, etc.
                 break
-
             case .background:
-                // Do nothing: clipboard clearing handled in NovaKeyApp.swift (and only on background).
                 break
-
             @unknown default:
                 break
             }

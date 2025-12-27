@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import CryptoKit
+import LocalAuthentication
 
 // MARK: - Options
 
@@ -107,13 +108,20 @@ enum VaultTransfer {
         // Pull all SecretItem rows
         let all = try modelContext.fetch(FetchDescriptor<SecretItem>())
 
+        // Use ONE LAContext for the entire export run.
+        let context = LAContext()
+        context.localizedReason = "Export secrets"
+
+        // If requireFreshBiometric: always prompt (reuse = 0).
+        // Else: allow short reuse so export only prompts once.
+        context.touchIDAuthenticationAllowableReuseDuration = requireFreshBiometric ? 0 : 10
+
         // Read secrets from Keychain for export
         let records: [VaultSecretRecord] = try all.map { item in
-            let s = try KeyChainVault.shared.readSecret(
-                for: item.id,
-                prompt: "Export \(item.name)",
-                requireFreshBiometric: requireFreshBiometric
-            )
+            // Per-item prompt helps some UIs; the context reuse duration controls whether it re-prompts.
+            context.localizedReason = "Export \(item.name)"
+
+            let s = try KeyChainVault.shared.readSecret(for: item.id, using: context)
             return VaultSecretRecord(
                 id: item.id,
                 name: item.name,
@@ -175,7 +183,6 @@ enum VaultTransfer {
             return try JSONEncoder().encode(env)
 
         case .none:
-            // already handled above
             throw VaultTransferError.unsupported
         }
     }

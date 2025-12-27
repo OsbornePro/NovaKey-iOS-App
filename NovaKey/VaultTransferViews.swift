@@ -17,7 +17,10 @@ struct VaultTransferViews: View {
     @State private var protection: VaultProtection = .password
     @State private var cipher: VaultCipher = .aesGcm256
     @State private var password: String = ""
-    @State private var requireFreshBiometric: Bool = true
+    @State private var confirmPassword: String = ""
+
+    /// Match Settings screen: default true.
+    @AppStorage("requireFreshBiometric") private var requireFreshBiometric: Bool = true
 
     // UI state
     @State private var showingExporter = false
@@ -30,6 +33,13 @@ struct VaultTransferViews: View {
     @State private var alertTitle: String = ""
     @State private var alertMessage: String = ""
     @State private var showAlert = false
+
+    private var passwordRequired: Bool { protection == .password && cipher != .none }
+    private var passwordIsValid: Bool {
+        if !passwordRequired { return true }
+        let p = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !p.isEmpty && p == confirmPassword
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,20 +60,23 @@ struct VaultTransferViews: View {
 
                     if protection == .password {
                         SecureField("Password", text: $password)
-                        SecureField("Confirm Password", text: $password) // simple; you can split if you want
+                        SecureField("Confirm Password", text: $confirmPassword)
+
+                        if !confirmPassword.isEmpty && password != confirmPassword {
+                            Text("Passwords do not match.")
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
                     }
 
                     Toggle("Require Face ID during export", isOn: $requireFreshBiometric)
 
-                    Button("Export Vault…") {
-                        doExport()
-                    }
+                    Button("Export Vault…") { doExport() }
+                        .disabled(!passwordIsValid)
                 }
 
                 Section("Import") {
-                    Button("Import Vault…") {
-                        showingImporter = true
-                    }
+                    Button("Import Vault…") { showingImporter = true }
                 }
 
                 Section {
@@ -137,6 +150,20 @@ struct VaultTransferViews: View {
                 }
             }
         }
+        .onChange(of: protection) { _, newValue in
+            // keep UI tidy when switching protection modes
+            if newValue == .none {
+                password = ""
+                confirmPassword = ""
+                cipher = .none
+            }
+        }
+        .onChange(of: cipher) { _, newValue in
+            if protection == .password && newValue == .none {
+                password = ""
+                confirmPassword = ""
+            }
+        }
     }
 
     // MARK: - Export
@@ -149,8 +176,8 @@ struct VaultTransferViews: View {
             cipher = .aesGcm256
         }
 
-        if protection == .password && password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            showInfo("Password required", "Choose a password or switch Protection to None.")
+        if passwordRequired && !passwordIsValid {
+            showInfo("Password mismatch", "Passwords must match to export a password-protected vault.")
             return
         }
 
@@ -159,7 +186,7 @@ struct VaultTransferViews: View {
                 modelContext: modelContext,
                 protection: protection,
                 cipher: cipher,
-                password: (protection == .password ? password : nil),
+                password: (passwordRequired ? password : nil),
                 requireFreshBiometric: requireFreshBiometric
             )
             exportData = data
@@ -180,7 +207,6 @@ struct VaultTransferViews: View {
             // Write into Keychain + SwiftData.
             // If a secret already exists (same UUID), we overwrite the keychain value and update metadata.
             for r in payload.secrets {
-                // Upsert model row
                 let existing = fetchSecretItem(id: r.id)
 
                 if let item = existing {
@@ -197,7 +223,6 @@ struct VaultTransferViews: View {
                     modelContext.insert(item)
                 }
 
-                // Upsert keychain
                 try KeyChainVault.shared.save(secret: r.secret, for: r.id)
             }
 

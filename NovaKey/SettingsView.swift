@@ -2,8 +2,6 @@
 //  SettingsView.swift
 //  NovaKey
 //
-//  Created by Robert Osborne on 12/21/25.
-//
 
 import SwiftUI
 import UIKit
@@ -21,7 +19,7 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section("Appearance") {
                     Picker("Theme", selection: $appearanceModeRaw) {
                         ForEach(AppearanceMode.allCases) { mode in
@@ -50,7 +48,7 @@ struct SettingsView: View {
                          : "Clipboard will auto-clear after the selected time and may also clear when the app backgrounds.")
                 }
 
-                Section("Security") { 
+                Section("Security") {
                     Toggle("Fewer Face ID Prompts", isOn: $requireFreshBiometric)
                 }
 
@@ -68,6 +66,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

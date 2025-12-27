@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B91468002EF9DEA500C8BF71 /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */; };
-		B91468012EF9DEA500C8BF71 /* NovaKeyKEM.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		B91468042EFA047A00C8BF71 /* AVFoundationQRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */; };
 		B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AB2EF354310011D282 /* NovaKeyApp.swift */; };
 		B94715AE2EF354310011D282 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AD2EF354310011D282 /* ContentView.swift */; };
@@ -44,6 +42,7 @@
 		B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */; };
 		B9EE18792EFF2440000F3019 /* TechnicalDetailsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */; };
 		B9EE187B2EFF468E000F3019 /* PairingPasteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */; };
+		B9EE18812EFF8FE1000F3019 /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B9EE18802EFF8FE1000F3019 /* NovaKeyKEM.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,7 +69,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				B91468012EF9DEA500C8BF71 /* NovaKeyKEM.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -104,7 +102,6 @@
 		B94715F42EF8AA700011D282 /* NovaKeyWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyWire.swift; sourceTree = "<group>"; };
 		B94715F72EF8ABE40011D282 /* PairingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingRecord.swift; sourceTree = "<group>"; };
 		B94715F92EF8AC090011D282 /* NovaKeyProtocolV3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyProtocolV3.swift; sourceTree = "<group>"; };
-		B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = ../NovaKeyKEMBridge/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 		B94715FF2EF926940011D282 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		B94716012EF9A7AE0011D282 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		B94716032EF9A7C50011D282 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
@@ -117,6 +114,7 @@
 		B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 		B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechnicalDetailsSheet.swift; sourceTree = "<group>"; };
 		B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingPasteSheet.swift; sourceTree = "<group>"; };
+		B9EE18802EFF8FE1000F3019 /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = ../NovaKeyKEMBridge/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,7 +123,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */,
-				B91468002EF9DEA500C8BF71 /* NovaKeyKEM.xcframework in Frameworks */,
+				B9EE18812EFF8FE1000F3019 /* NovaKeyKEM.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,7 +147,7 @@
 		B947159F2EF354300011D282 = {
 			isa = PBXGroup;
 			children = (
-				B94715FD2EF8CB9A0011D282 /* NovaKeyKEM.xcframework */,
+				B9EE18802EFF8FE1000F3019 /* NovaKeyKEM.xcframework */,
 				B94715AA2EF354310011D282 /* NovaKey */,
 				B94715C02EF354350011D282 /* NovaKeyTests */,
 				B94715CA2EF354350011D282 /* NovaKeyUITests */,

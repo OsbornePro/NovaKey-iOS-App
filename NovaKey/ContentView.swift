@@ -45,7 +45,7 @@ struct ContentView: View {
     @AppStorage("requireFreshBiometric") private var requireFreshBiometric: Bool = true
     @AppStorage("autoApproveBeforeSend") private var autoApproveBeforeSend: Bool = true
 
-    private let client = NovaKeyClientV3()
+    private let client = NovaKeyClient()
 
     private var clipboardTimeout: ClipboardTimeout {
         ClipboardTimeout(rawValue: clipboardTimeoutRaw) ?? .s60
@@ -398,7 +398,7 @@ struct ContentView: View {
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
 
-            let injectResp: NovaKeyClientV3.ServerResponse
+            let injectResp: NovaKeyClient.ServerResponse
             do {
                 let r = try await client.sendInject(secret: secret, pairing: pairing)
                 try await ensureSuccess(r, targetName: targetSnapshot.name, stage: "inject")
@@ -453,19 +453,23 @@ struct ContentView: View {
         s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func friendlyStatusMessage(_ status: NovaKeyClientV3.Status, targetName: String) -> String {
+    private static func friendlyStatusMessage(_ status: NovaKeyClient.Status, targetName: String) -> String {
         switch status {
-        case .notArmed:     return "Computer isn’t armed. Arm NovaKey-Daemon, then try again."
-        case .needsApprove: return "Computer needs approval. Approve on the computer, then try again."
-        case .notPaired:    return "Not paired with \(targetName). Re-pair and try again."
-        case .badRequest:   return "Request rejected by the computer."
-        case .badTimestamp: return "Clock check failed. Ensure your phone and computer time are correct."
-        case .replay:       return "Replay detected. Try sending again."
-        case .rateLimit:    return "Rate limited by the computer. Wait a moment and try again."
-        case .cryptoFail:   return "Secure channel failed. Re-pair with the computer and try again."
-        case .internalError:return "Computer error. Try again (or check daemon logs)."
+        case .notArmed:      return "Computer isn’t armed. Arm NovaKey-Daemon, then try again."
+        case .needsApprove:  return "Computer needs approval. Approve on the computer, then try again."
+        case .notPaired:     return "Not paired with \(targetName). Re-pair and try again."
+        case .badRequest:    return "Request rejected by the computer."
+        case .badTimestamp:  return "Clock check failed. Ensure your phone and computer time are correct."
+        case .replay:        return "Replay detected. Try sending again."
+        case .rateLimit:     return "Rate limited by the computer. Wait a moment and try again."
+        case .cryptoFail:    return "Secure channel failed. Re-pair with the computer and try again."
+        case .internalError: return "Computer error. Try again (or check daemon logs)."
         case .ok, .okClipboard:
             return "Success"
+
+        case .unknown:
+            // Your enum already has a “catch-all” case, so use it.
+            return "Computer returned status 0x\(String(format: "%02X", status.rawValue))."
         }
     }
 
@@ -477,7 +481,7 @@ struct ContentView: View {
     }
 
     private func ensureSuccess(
-        _ resp: NovaKeyClientV3.ServerResponse,
+        _ resp: NovaKeyClient.ServerResponse,
         targetName: String,
         stage: String
     ) async throws {
