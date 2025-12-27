@@ -2,6 +2,14 @@
 //  NovaKeyClient.swift
 //  NovaKey
 //
+//  Drop-in replacement that fixes:
+//  1) Duplicate readLine() (your file currently has TWO with same signature -> won’t compile)
+//  2) Makes /v3 reply reading deterministic (read ONE newline-terminated JSON line)
+//     instead of the “idleReads” heuristic that can trigger NWError 96.
+//
+//  Pairing (/pair) still uses sendFinal (EOF) because pairing handler reads until EOF.
+//  Send (/v3) uses normal send (no half-close needed) and reads a single JSON line.
+//
 
 import Foundation
 import Network
@@ -27,7 +35,7 @@ struct PairServerKey: Codable {
     let v: Int
     let kid: String
     let kyber_pub_b64: String
-    let fp16_hex: String?      // make optional so decode won’t fail
+    let fp16_hex: String?
     let expires_unix: Int64
 }
 
@@ -59,33 +67,30 @@ final class NovaKeyPairClient {
 
         try await connect(conn)
 
-        // 1) Route line (router.go reads this)
+        // 1) Route line
         try await send(conn, Data("NOVAK/1 /pair\n".utf8))
 
-        // 2) Hello JSON line (pairing_proto.go reads this)
+        // 2) Hello JSON line (pairing protocol version stays v=1)
         var helloObj: [String: Any] = ["op": "hello", "v": 1, "token": token]
-        // daemon ignores unknown fields, so including fp is safe (but not required)
         if let fp16Hex, !fp16Hex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             helloObj["fp"] = fp16Hex
         }
         try await send(conn, try jsonLine(helloObj))
 
         // 3) server_key line
-        let serverKeyLine = try await readLine(conn, maxBytes: 16 * 1024)
+        let serverKeyLine = try await readLineExpectNewline(conn, maxBytes: 16 * 1024, errMsgIfMissingNL: "no newline in server_key")
         let serverKey = try decodeServerKey(serverKeyLine)
 
-        // 4) Build register frame (binary) and send it as FINAL (half-close write side)
-        // Your Go KEM bridge expects tokenRawURLB64 = the base64url token string from QR.
+        // 4) Build register frame (binary) and send as FINAL (half-close write side).
+        // Pairing handler reads until EOF.
         let tokenRawURLB64 = token
         let registerFrame = try buildRegisterFrame(serverKey, tokenRawURLB64)
-
-        // *** CRITICAL ***
-        // Daemon reads ciphertext with io.ReadAll() until EOF,
-        // so we MUST signal end-of-stream after sending the register frame.
         try await sendFinal(conn, registerFrame)
 
         // 5) Read ack (daemon writes: [24-byte nonce][ciphertext])
-        let ack = try await readAck(conn, maxBytes: 256 * 1024)
+        let ack = try await withTimeout(5.0) { [self] in
+            try await self.readAck(conn, maxBytes: 256 * 1024)
+        }
         guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
@@ -153,7 +158,8 @@ final class NovaKeyPairClient {
         }
     }
 
-    private func readLine(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
+    // Read up to and INCLUDING newline. Throws if newline never appears.
+    private func readLineExpectNewline(_ conn: NWConnection, maxBytes: Int, errMsgIfMissingNL: String) async throws -> Data {
         var buffer = Data()
         while buffer.count < maxBytes {
             let chunk = try await receive(conn, min: 1, max: 2048)
@@ -162,29 +168,10 @@ final class NovaKeyPairClient {
             if buffer.contains(0x0A) { break } // '\n'
         }
         guard let nl = buffer.firstIndex(of: 0x0A) else {
-            throw NovaKeyPairError.protocolError("no newline in server_key")
+            throw NovaKeyPairError.protocolError(errMsgIfMissingNL)
         }
         return buffer.prefix(upTo: buffer.index(after: nl))
     }
-
-    private func readToCloseOrIdle(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
-        var out = Data()
-        var idleReads = 0
-
-        while out.count < maxBytes {
-            let chunk = try await receive(conn, min: 1, max: 4096)
-            if chunk.isEmpty {
-                idleReads += 1
-                if idleReads >= 2 { break }
-            } else {
-                idleReads = 0
-                out.append(chunk)
-            }
-        }
-        return out
-    }
-
-    // MARK: - JSON helpers
 
     private func jsonLine(_ obj: [String: Any]) throws -> Data {
         let b = try JSONSerialization.data(withJSONObject: obj, options: [])
@@ -202,6 +189,7 @@ final class NovaKeyPairClient {
         }
         return sk
     }
+
     private func readExact(_ conn: NWConnection, count: Int, maxChunk: Int = 4096) async throws -> Data {
         var out = Data()
         out.reserveCapacity(count)
@@ -228,41 +216,44 @@ final class NovaKeyPairClient {
     }
 
     private func readAck(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
+        // 1) nonce (exactly 24 bytes)
         let nonce = try await readExact(conn, count: 24)
 
-        var out = Data()
-        out.reserveCapacity(256)
-
-        var idleReads = 0
-        while (24 + out.count) < maxBytes {
-            let chunk = try await receive(conn, min: 1, max: 4096)
-            if chunk.isEmpty {
-                idleReads += 1
-                if idleReads >= 2 { break }   // stop after 2 empty reads
-            } else {
-                idleReads = 0
-                out.append(chunk)
-
-                // ACK payload should be small JSON; once we have a plausible minimum, stop.
-                if out.count >= 16 { break }  // AEAD tag minimum already satisfied
-            }
+        // 2) read ONE chunk of ciphertext (should contain the whole ack)
+        // The ack is small (~80-200 bytes). One receive is enough.
+        let ct = try await receive(conn, min: 1, max: min(4096, maxBytes - 24))
+        if ct.isEmpty {
+            throw NovaKeyPairError.protocolError("empty ack ciphertext")
         }
 
-        let ack = nonce + out
-        if ack.count < 24 + 16 {
+        let ack = nonce + ct
+        guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
         return ack
     }
+
+    private func withTimeout<T>(_ seconds: Double, _ op: @escaping () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await op() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw NovaKeyPairError.protocolError("timeout waiting for server response")
+            }
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
+        }
+    }
+
 }
 
 // MARK: - Send client (/v3)
 
 final class NovaKeyClient {
     private let queue = DispatchQueue(label: "novakey.send.client")
-    private let routeLine = "NOVAK/1 /v3\n"
+    private let routeLine = "NOVAK/1 /msg\n"
 
-    // Your UI expects these:
     enum Status: UInt8, Codable, CustomStringConvertible {
         case ok = 0x00
         case okClipboard = 0x01
@@ -301,9 +292,7 @@ final class NovaKeyClient {
             }
         }
 
-        static func from(raw: UInt8) -> Status {
-            Status(rawValue: raw) ?? .unknown
-        }
+        static func from(raw: UInt8) -> Status { Status(rawValue: raw) ?? .unknown }
     }
 
     struct ServerResponse {
@@ -325,7 +314,7 @@ final class NovaKeyClient {
         }
     }
 
-    // MARK: Public API used by ContentView
+    // MARK: Public API
 
     func sendApprove(pairing: PairingRecord) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildApproveFrame(pairing: pairing)
@@ -352,7 +341,15 @@ final class NovaKeyClient {
         try await connect(conn)
         try await send(conn, Data(routeLine.utf8))
         try await send(conn, frame)
-        return try await readToCloseOrIdle(conn, maxBytes: 256 * 1024)
+
+        // Deterministic: daemon replies with a newline-terminated JSON line
+        return try await readLine(conn, maxBytes: 256 * 1024)
+    }
+    
+    func sendArm(pairing: PairingRecord, durationMs: Int? = nil) async throws -> ServerResponse {
+        let frame = try NovaKeyProtocolV3.buildArmFrame(pairing: pairing, durationMs: durationMs)
+        let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
+        return try parseServerResponse(data)
     }
 
     // MARK: Swift 6 safe connect/send/recv
@@ -407,56 +404,47 @@ final class NovaKeyClient {
         }
     }
 
-    private func readToCloseOrIdle(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
-        var out = Data()
-        var idleReads = 0
-
-        while out.count < maxBytes {
-            let chunk = try await receive(conn, min: 1, max: 4096)
-            if chunk.isEmpty {
-                idleReads += 1
-                if idleReads >= 2 { break }
-            } else {
-                idleReads = 0
-                out.append(chunk)
-                // v3 daemon replies are newline terminated JSON
-                if out.contains(0x0A) { break }
-            }
+    // Read up to newline OR close.
+    private func readLine(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
+        var buffer = Data()
+        while buffer.count < maxBytes {
+            let chunk = try await receive(conn, min: 1, max: 2048)
+            if chunk.isEmpty { break } // peer closed
+            buffer.append(chunk)
+            if buffer.contains(0x0A) { break } // '\n'
         }
-        return out
+        return buffer
     }
 
     // MARK: Reply parsing
 
     private func parseServerResponse(_ data: Data) throws -> ServerResponse {
         let trimmed = data.trimmingTrailingNewlines()
-        guard !trimmed.isEmpty else {
-            throw ClientError.badReply("empty response")
-        }
-
-        // Expected daemon response: JSON line.
-        // We support a few shapes so you can evolve server without breaking iOS.
+        guard !trimmed.isEmpty else { throw ClientError.badReply("empty response") }
 
         // Shape A: { "status": 0, "message": "..." }
-        struct RespA: Decodable {
-            let status: UInt8
-            let message: String?
-        }
+        struct RespA: Decodable { let status: UInt8; let message: String? }
         if let a = try? JSONDecoder().decode(RespA.self, from: trimmed) {
             return ServerResponse(status: Status.from(raw: a.status), message: a.message ?? "")
         }
 
-        // Shape B: { "ok": true/false, "error": "..." }
-        struct RespB: Decodable {
-            let ok: Bool
-            let error: String?
+        // Shape A2: { "status": 0, "msg": "..." }  <-- very common
+        struct RespA2: Decodable { let status: UInt8; let msg: String? }
+        if let a2 = try? JSONDecoder().decode(RespA2.self, from: trimmed) {
+            return ServerResponse(status: Status.from(raw: a2.status), message: a2.msg ?? "")
         }
+
+        // Shape B: { "ok": true/false, "error": "..." }
+        struct RespB: Decodable { let ok: Bool; let error: String? }
         if let b = try? JSONDecoder().decode(RespB.self, from: trimmed) {
             return ServerResponse(status: b.ok ? .ok : .badRequest, message: b.error ?? "")
         }
 
-        // Fallback: treat as plaintext
+        // Shape C: plain text
         let s = String(decoding: trimmed, as: UTF8.self)
+        // If daemon returns "approved" as text, treat as OK
+        if s.lowercased().contains("approved") { return ServerResponse(status: .ok, message: s) }
+        if s.lowercased() == "ok" { return ServerResponse(status: .ok, message: s) }
         return ServerResponse(status: .unknown, message: s)
     }
 }

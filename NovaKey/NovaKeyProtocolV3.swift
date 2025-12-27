@@ -11,6 +11,7 @@ enum NovaKeyProtocolV3 {
     enum InnerMsgType: UInt8 {
         case inject = 1
         case approve = 2
+        case arm = 3
     }
 
     enum ProtoError: Error, LocalizedError {
@@ -44,6 +45,14 @@ enum NovaKeyProtocolV3 {
         case .inject:
             return try buildInjectFrame(pairing: pairing, secret: payloadUTF8)
         }
+    }
+
+    /// "Arm" (user-friendly) currently maps to an approve message.
+    /// This avoids changing the Go bridge right now and works with the server's two-man approval gate.
+    /// If you later add a dedicated MsgTypeArm, update this to call NovakeykemBuildArmFrame.
+    static func buildArmFrame(pairing: PairingRecord, durationMs: Int? = nil) throws -> Data {
+        // durationMs intentionally ignored for now (server approve window controls duration).
+        return try buildApproveFrame(pairing: pairing)
     }
 
     static func buildApproveFrame(pairing: PairingRecord) throws -> Data {
@@ -104,7 +113,7 @@ private extension PairingRecord {
         let keyHex = deviceKey.map { String(format: "%02x", $0) }.joined()
 
         let blob = PairingBlob(
-            v: 3, // ✅ IMPORTANT: your daemon uses v=3
+            v: 3, // IMPORTANT: your daemon uses v=3
             device_id: deviceID,
             device_key_hex: keyHex,
             server_addr: serverAddr,

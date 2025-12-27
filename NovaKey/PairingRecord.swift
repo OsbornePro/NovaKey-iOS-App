@@ -2,8 +2,6 @@
 //  PairingRecord.swift
 //  NovaKey
 //
-//  Created by Robert Osborne on 12/21/25.
-//
 
 import Foundation
 import Security
@@ -81,14 +79,22 @@ enum PairingManager {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(q as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else {
-            // TEMP DEBUG:
-            // print("PairingManager.load status:", status)
             return nil
         }
         return try? JSONDecoder().decode(PairingRecord.self, from: data)
     }
+
+    /// Reset pairing record (removes Keychain entry).
+    static func resetPairing() {
+        let del: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(del as CFDictionary)
+    }
+
     private static func parseHostPort(_ s: String) throws -> (String, Int) {
-        // Accept "host:port"
         let parts = s.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
         guard parts.count == 2,
               let port = Int(parts[1]),
@@ -100,6 +106,7 @@ enum PairingManager {
         guard !host.isEmpty else { throw PairingErrors.invalidServerAddr }
         return (host, port)
     }
+
     /// Accepts either:
     /// 1) nvpair blob:
     ///    { v, device_id, device_key_hex, server_addr, server_kyber768_pub }
@@ -166,7 +173,69 @@ enum PairingManager {
             serverPubB64: pub
         )
     }
+}
 
+// MARK: - Stable Device ID (Keychain)
+// This is the key fix: the phone keeps a consistent device_id across repairs,
+// unless the user explicitly resets pairing.
+enum DeviceIDManager {
+    private static let service = "com.novakey.deviceid.v1"
+    private static let account = "primary"
+
+    static func getOrCreate() -> String {
+        if let existing = load(), !existing.isEmpty {
+            return existing
+        }
+        let fresh = "ios-" + String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8))
+        save(fresh)
+        return fresh
+    }
+
+    static func reset() {
+        let del: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(del as CFDictionary)
+    }
+
+    private static func save(_ s: String) {
+        let data = Data(s.utf8)
+
+        let del: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(del as CFDictionary)
+
+        let add: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        _ = SecItemAdd(add as CFDictionary, nil)
+    }
+
+    private static func load() -> String? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(q as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
+    }
 }
 
 // MARK: - Hex helper
@@ -189,4 +258,3 @@ extension Data {
         self = out
     }
 }
-

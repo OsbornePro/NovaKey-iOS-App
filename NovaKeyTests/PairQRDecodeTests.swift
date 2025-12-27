@@ -10,11 +10,11 @@ import XCTest
 
 final class PairQRDecodeTests: XCTestCase {
 
-    func testDecodeV2ValidQR() throws {
-        let qr = "novakey://pair?v=2&host=10.0.0.5&port=60769&token=abc123"
+    func testDecodeV3ValidQR() throws {
+        let qr = "novakey://pair?v=3&host=10.0.0.5&port=60769&token=abc123"
         let link = try decodeNovaKeyPairQRLink(qr)
 
-        XCTAssertEqual(link.v, 2)
+        XCTAssertEqual(link.version, 3)
         XCTAssertEqual(link.host, "10.0.0.5")
         XCTAssertEqual(link.port, 60769)
         XCTAssertEqual(link.token, "abc123")
@@ -31,7 +31,7 @@ final class PairQRDecodeTests: XCTestCase {
     }
 
     func testDecodeMissingHost() {
-        let qr = "novakey://pair?v=2&port=60769&token=abc123"
+        let qr = "novakey://pair?v=3&port=60769&token=abc123"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
             guard let e = err as? PairQRDecodeError else {
                 return XCTFail("wrong error type: \(type(of: err))")
@@ -44,7 +44,7 @@ final class PairQRDecodeTests: XCTestCase {
     }
 
     func testDecodeBadPort() {
-        let qr = "novakey://pair?v=2&host=10.0.0.5&port=notaport&token=abc123"
+        let qr = "novakey://pair?v=3&host=10.0.0.5&port=notaport&token=abc123"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
             guard let e = err as? PairQRDecodeError else {
                 return XCTFail("wrong error type: \(type(of: err))")
@@ -54,7 +54,7 @@ final class PairQRDecodeTests: XCTestCase {
     }
 
     func testDecodeMissingToken() {
-        let qr = "novakey://pair?v=2&host=10.0.0.5&port=60769"
+        let qr = "novakey://pair?v=3&host=10.0.0.5&port=60769"
         XCTAssertThrowsError(try decodeNovaKeyPairQRLink(qr)) { err in
             guard let e = err as? PairQRDecodeError else {
                 return XCTFail("wrong error type: \(type(of: err))")

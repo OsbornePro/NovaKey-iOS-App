@@ -4,7 +4,7 @@
 //
 //  QR contents (bootstrap link schema; NOT crypto protocol version):
 //    novakey://pair?v=3&host=...&port=...&token=...&fp=...&exp=...
-//    novakey://pair?v=3|4&addr=host:port&token=...&fp=...&exp=...
+//    novakey://pair?v=3&addr=host:port&token=...&fp=...&exp=...
 //
 
 import Foundation
@@ -61,7 +61,7 @@ func decodeNovaKeyPairQRLink(_ raw: String) throws -> PairBootstrapLink {
     }
 
     let version = Int(q("v") ?? "") ?? 0
-    if version != 0 && version != 3 && version != 4 {
+    if version != 0 && version != 3 {
         throw PairQRDecodeError.unsupportedVersion(version)
     }
 

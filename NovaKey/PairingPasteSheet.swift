@@ -43,6 +43,7 @@ struct PairingPasteSheet: View {
     @State private var pendingConfirmTitle = "Confirm Pairing"
     @State private var pendingConfirmMessage = ""
     @State private var showPairConfirmDialog = false
+    @State private var showResetConfirm = false
 
     @State private var showImporter = false
 
@@ -70,7 +71,7 @@ struct PairingPasteSheet: View {
                         pendingLink = nil
                         showQRScanner = true
                     } label: {
-                        Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                        Label("Scan QR", systemImage: "qrcode.viewfinder")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -143,6 +144,15 @@ struct PairingPasteSheet: View {
             .navigationTitle("Pair \(listener.displayName)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    Button(role: .destructive) {
+                        showResetConfirm = true
+                    } label: {
+                        Label("Reset Pairing", systemImage: "trash")
+                    }
+                    .disabled(isWorking)
+                }
+
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
@@ -160,6 +170,21 @@ struct PairingPasteSheet: View {
                     Spacer()
                     Button("Done") { editorFocused = false }
                 }
+            }
+            .alert("Reset pairing?", isPresented: $showResetConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    // wipe both: pairing record + stable device id
+                    PairingManager.resetPairing()
+                    DeviceIDManager.reset()
+
+                    // Clear UI draft so user doesn't accidentally reuse stale JSON
+                    clearDraft()
+                    pendingLink = nil
+                    errorText = nil
+                }
+            } message: {
+                Text("This removes the pairing record from this phone and forces a new device id on next pairing.")
             }
             .alert("Server address mismatch", isPresented: $showMismatchAlert) {
                 Button("OK", role: .cancel) {}
@@ -312,7 +337,7 @@ struct PairingPasteSheet: View {
             let client = NovaKeyPairClient()
             let serverKeyBox = RefBox<PairServerKey?>(nil)
 
-            let deviceID = "ios-\(UUID().uuidString.prefix(8))"
+            let deviceID = DeviceIDManager.getOrCreate()
             let deviceKeyHex = randomHex(bytes: 32)
 
             let registerCTBox = RefBox<Data?>(nil)

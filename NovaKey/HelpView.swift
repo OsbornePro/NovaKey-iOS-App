@@ -18,7 +18,7 @@ struct HelpView: View {
                     step(2, "Set the added listener as your Send Target by touching it.")
                     step(3, "Run the install script for NovaKey-Daemon on your computer. First run generates a QR code and displays it on your computer.")
                     step(4, "Select the listener added on your phone, swipe it right and select 'Pair'.")
-                    step(5, "Select the 'Scan QR Code' button and scan the QR code on your computer.")
+                    step(5, "Select the 'Scan QR' button and scan the QR code on your computer.")
                     step(6, "Add a secret, then Send!")
                 }
 
