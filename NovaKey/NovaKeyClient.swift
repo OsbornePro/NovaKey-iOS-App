@@ -256,7 +256,9 @@ final class NovaKeyClient {
 
     enum Status: UInt8, Codable, CustomStringConvertible {
         case ok = 0x00
-        case okClipboard = 0x01
+
+        // Daemon uses 0x09 for “clipboard fallback success”
+        case okClipboard = 0x09
 
         case badRequest = 0x10
         case notPaired  = 0x11
@@ -268,7 +270,7 @@ final class NovaKeyClient {
         case badTimestamp = 0x30
         case replay       = 0x31
 
-        case rateLimit    = 0x40
+        case rateLimit     = 0x40
         case internalError = 0x50
 
         case unknown = 0xFF
@@ -292,7 +294,11 @@ final class NovaKeyClient {
             }
         }
 
-        static func from(raw: UInt8) -> Status { Status(rawValue: raw) ?? .unknown }
+        static func from(raw: UInt8) -> Status {
+            // Back-compat: some old builds used 0x01 for clipboard success
+            if raw == 0x01 { return .okClipboard }
+            return Status(rawValue: raw) ?? .unknown
+        }
     }
 
     struct ServerResponse {

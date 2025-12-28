@@ -512,7 +512,8 @@ struct ContentView: View {
                 case .okClipboard:
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     let msg = Self.clean(injectResp.message)
-                    toast(msg.isEmpty ? "📋 Copied to clipboard on \(targetSnapshot.name)" : "📋 \(msg)")
+                    let prefix = msg.lowercased().contains("wayland") ? "🟣📋 " : "📋 "
+                    toast(msg.isEmpty ? "📋 Copied to clipboard on \(targetSnapshot.name)" : "\(prefix)\(msg)")
 
                 default:
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
