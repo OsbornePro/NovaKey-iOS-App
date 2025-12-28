@@ -61,6 +61,71 @@ struct ContentView: View {
         activeSheet = sheet
         activeSheetRaw = sheet?.rawValue
     }
+    private func armTarget(durationMs: Int) async {
+        do {
+            let targetSnapshot: (String) = try await MainActor.run {
+                guard let target = listeners.first(where: { $0.isDefault }) else {
+                    throw NSError(domain: "NovaKey", code: 2, userInfo: [NSLocalizedDescriptionKey: "No Send Target set"])
+                }
+                return (target.displayName)
+            }
+
+            guard let pairing = PairingManager.load() else {
+                await MainActor.run {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    toast("Not paired with \(targetSnapshot)")
+                }
+                return
+            }
+
+            let resp = try await client.sendArm(pairing: pairing, durationMs: durationMs)
+            try await ensureSuccess(resp, targetName: targetSnapshot, stage: "arm")
+
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                toast("Armed \(targetSnapshot) for \(durationMs / 1000)s")
+            }
+        } catch {
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                toast("Arm failed: \(error.localizedDescription)")
+                print("Arm failed:", error)
+            }
+        }
+    }
+
+    private func disarmTarget() async {
+        do {
+            let targetSnapshot: (String) = try await MainActor.run {
+                guard let target = listeners.first(where: { $0.isDefault }) else {
+                    throw NSError(domain: "NovaKey", code: 2, userInfo: [NSLocalizedDescriptionKey: "No Send Target set"])
+                }
+                return (target.displayName)
+            }
+
+            guard let pairing = PairingManager.load() else {
+                await MainActor.run {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    toast("Not paired with \(targetSnapshot)")
+                }
+                return
+            }
+
+            let resp = try await client.sendDisarm(pairing: pairing)
+            try await ensureSuccess(resp, targetName: targetSnapshot, stage: "disarm")
+
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                toast("Disarmed \(targetSnapshot)")
+            }
+        } catch {
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                toast("Disarm failed: \(error.localizedDescription)")
+                print("Disarm failed:", error)
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -76,6 +141,14 @@ struct ContentView: View {
                 ) {
                     Button("Copy") { Task { await copySelected() } }
                     Button("Send") { Task { await sendSelected() } }
+
+                    Divider()
+
+                    Button("Arm Computer (15s)") { Task { await armTarget(durationMs: 15_000) } }
+                    Button("Disarm Computer") { Task { await disarmTarget() } }
+
+                    Divider()
+
                     Button("Delete", role: .destructive) {
                         pendingDelete = selectedSecret
                         showDeleteConfirm = true
