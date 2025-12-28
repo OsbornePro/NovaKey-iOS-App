@@ -255,55 +255,33 @@ final class NovaKeyClient {
     private let routeLine = "NOVAK/1 /msg\n"
 
     enum Status: UInt8, Codable, CustomStringConvertible {
-        case ok = 0x00
-
-        // Daemon uses 0x09 for “clipboard fallback success”
-        case okClipboard = 0x09
-
-        case badRequest = 0x10
-        case notPaired  = 0x11
-        case cryptoFail = 0x12
-
-        case notArmed     = 0x20
-        case needsApprove = 0x21
-
-        case badTimestamp = 0x30
-        case replay       = 0x31
-
-        case rateLimit     = 0x40
-        case internalError = 0x50
-
-        case unknown = 0xFF
+        case ok           = 0x00
+        case notArmed     = 0x01
+        case needsApprove = 0x02
+        case notPaired    = 0x03
+        case badRequest   = 0x04
+        case badTimestamp = 0x05
+        case replay       = 0x06
+        case rateLimit    = 0x07
+        case cryptoFail   = 0x08
+        case okClipboard  = 0x09
+        case internalError = 0x7F
+        case unknown      = 0xFF
 
         var isSuccess: Bool { self == .ok || self == .okClipboard }
 
-        var description: String {
-            switch self {
-            case .ok: return "ok"
-            case .okClipboard: return "okClipboard"
-            case .badRequest: return "badRequest"
-            case .notPaired: return "notPaired"
-            case .cryptoFail: return "cryptoFail"
-            case .notArmed: return "notArmed"
-            case .needsApprove: return "needsApprove"
-            case .badTimestamp: return "badTimestamp"
-            case .replay: return "replay"
-            case .rateLimit: return "rateLimit"
-            case .internalError: return "internalError"
-            case .unknown: return "unknown"
-            }
-        }
-
         static func from(raw: UInt8) -> Status {
-            // Back-compat: some old builds used 0x01 for clipboard success
-            if raw == 0x01 { return .okClipboard }
             return Status(rawValue: raw) ?? .unknown
         }
+
+        var description: String { "\(self)" }
     }
 
     struct ServerResponse {
         let status: Status
         let message: String
+        let stage: String
+        let reason: String
     }
 
     enum ClientError: Error, LocalizedError {
@@ -433,30 +411,25 @@ final class NovaKeyClient {
         let trimmed = data.trimmingTrailingNewlines()
         guard !trimmed.isEmpty else { throw ClientError.badReply("empty response") }
 
-        // Shape A: { "status": 0, "message": "..." }
-        struct RespA: Decodable { let status: UInt8; let message: String? }
-        if let a = try? JSONDecoder().decode(RespA.self, from: trimmed) {
-            return ServerResponse(status: Status.from(raw: a.status), message: a.message ?? "")
+        struct RespD: Decodable {
+            let status: UInt8
+            let msg: String?
+            let stage: String
+            let reason: String
         }
 
-        // Shape A2: { "status": 0, "msg": "..." }  <-- very common
-        struct RespA2: Decodable { let status: UInt8; let msg: String? }
-        if let a2 = try? JSONDecoder().decode(RespA2.self, from: trimmed) {
-            return ServerResponse(status: Status.from(raw: a2.status), message: a2.msg ?? "")
+        do {
+            let d = try JSONDecoder().decode(RespD.self, from: trimmed)
+            return ServerResponse(
+                status: Status.from(raw: d.status),
+                message: d.msg ?? "",
+                stage: d.stage,
+                reason: d.reason
+            )
+        } catch {
+            let raw = String(decoding: trimmed, as: UTF8.self)
+            throw ClientError.badReply("decode failed: \(error.localizedDescription) raw=\(raw)")
         }
-
-        // Shape B: { "ok": true/false, "error": "..." }
-        struct RespB: Decodable { let ok: Bool; let error: String? }
-        if let b = try? JSONDecoder().decode(RespB.self, from: trimmed) {
-            return ServerResponse(status: b.ok ? .ok : .badRequest, message: b.error ?? "")
-        }
-
-        // Shape C: plain text
-        let s = String(decoding: trimmed, as: UTF8.self)
-        // If daemon returns "approved" as text, treat as OK
-        if s.lowercased().contains("approved") { return ServerResponse(status: .ok, message: s) }
-        if s.lowercased() == "ok" { return ServerResponse(status: .ok, message: s) }
-        return ServerResponse(status: .unknown, message: s)
     }
 }
 
