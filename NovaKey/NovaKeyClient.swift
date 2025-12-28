@@ -351,6 +351,11 @@ final class NovaKeyClient {
         let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
         return try parseServerResponse(data)
     }
+    func sendDisarm(pairing: PairingRecord) async throws -> ServerResponse {
+        let frame = try NovaKeyProtocolV3.buildDisarmFrame(pairing: pairing)
+        let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
+        return try parseServerResponse(data)
+    }
 
     // MARK: Swift 6 safe connect/send/recv
 

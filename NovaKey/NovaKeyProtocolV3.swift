@@ -9,9 +9,10 @@ import NovaKeyKEM
 enum NovaKeyProtocolV3 {
 
     enum InnerMsgType: UInt8 {
-        case inject = 1
+        case inject  = 1
         case approve = 2
-        case arm = 3
+        case arm     = 3
+        case disarm  = 4
     }
 
     enum ProtoError: Error, LocalizedError {
@@ -34,27 +35,6 @@ enum NovaKeyProtocolV3 {
         }
     }
 
-    static func buildFrame(
-        pairing: PairingRecord,
-        innerType: InnerMsgType,
-        payloadUTF8: String
-    ) throws -> Data {
-        switch innerType {
-        case .approve:
-            return try buildApproveFrame(pairing: pairing)
-        case .inject:
-            return try buildInjectFrame(pairing: pairing, secret: payloadUTF8)
-        }
-    }
-
-    /// "Arm" (user-friendly) currently maps to an approve message.
-    /// This avoids changing the Go bridge right now and works with the server's two-man approval gate.
-    /// If you later add a dedicated MsgTypeArm, update this to call NovakeykemBuildArmFrame.
-    static func buildArmFrame(pairing: PairingRecord, durationMs: Int? = nil) throws -> Data {
-        // durationMs intentionally ignored for now (server approve window controls duration).
-        return try buildApproveFrame(pairing: pairing)
-    }
-
     static func buildApproveFrame(pairing: PairingRecord) throws -> Data {
         let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
 
@@ -62,7 +42,6 @@ enum NovaKeyProtocolV3 {
         guard let nsData = NovakeykemBuildApproveFrame(pairingBlobJSON, &err) else {
             throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
-
         let data = nsData as Data
         if data.isEmpty { throw ProtoError.emptyFrameReturned }
         return data
@@ -75,7 +54,33 @@ enum NovaKeyProtocolV3 {
         guard let nsData = NovakeykemBuildInjectFrame(pairingBlobJSON, secret, &err) else {
             throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
+        let data = nsData as Data
+        if data.isEmpty { throw ProtoError.emptyFrameReturned }
+        return data
+    }
 
+    static func buildArmFrame(pairing: PairingRecord, durationMs: Int? = nil) throws -> Data {
+        let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
+        let ms = max(1, durationMs ?? 15000) // default 15s
+
+        var err: NSError?
+        // You must add this symbol in the Go bridge (see section B).
+        guard let nsData = NovakeykemBuildArmFrame(pairingBlobJSON, Int32(ms), &err) else {
+            throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
+        }
+        let data = nsData as Data
+        if data.isEmpty { throw ProtoError.emptyFrameReturned }
+        return data
+    }
+
+    static func buildDisarmFrame(pairing: PairingRecord) throws -> Data {
+        let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
+
+        var err: NSError?
+        // You must add this symbol in the Go bridge (see section B).
+        guard let nsData = NovakeykemBuildDisarmFrame(pairingBlobJSON, &err) else {
+            throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
+        }
         let data = nsData as Data
         if data.isEmpty { throw ProtoError.emptyFrameReturned }
         return data
@@ -113,7 +118,7 @@ private extension PairingRecord {
         let keyHex = deviceKey.map { String(format: "%02x", $0) }.joined()
 
         let blob = PairingBlob(
-            v: 3, // IMPORTANT: your daemon uses v=3
+            v: 3,
             device_id: deviceID,
             device_key_hex: keyHex,
             server_addr: serverAddr,
