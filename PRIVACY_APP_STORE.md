@@ -1,34 +1,38 @@
 # 🛡️ App Store Privacy Disclosure
 
-### Data Collection
+This document is a plain-English summary of NovaKey’s privacy posture.
+Your official App Privacy answers in App Store Connect must match the app build you ship.
 
-NovaKey **DOES NOT collect** or transmit any personal data to the developer.
+## Data Collection (Developer / Third Parties)
 
-### Data Stored on Device
+NovaKey does **not** collect personal data to a developer-controlled server and does not include third-party analytics or advertising SDKs.
 
-* Secrets are stored **locally only**
-* Secrets are protected by the iOS Keychain
-* Secrets are encrypted and marked `ThisDeviceOnly`
-* No analytics, tracking, or identifiers are collected
+NovaKey’s core behavior is peer-to-peer: when you choose **Send**, the app transmits the secret directly to a computer you explicitly paired with.
 
-### Data Shared
+> Apple’s “collection” for privacy labels generally refers to data transmitted off-device in a way the developer and/or integrated third parties can access beyond real-time servicing.
 
-* Secrets are transmitted **only** to user-paired computers
-* All transmissions are end-to-end encrypted
-* No data is sent to third-party servers
-* No cloud storage is used
+## Data Stored on Device
 
-### Tracking
+- Secrets are stored locally on your device.
+- Secrets are protected by the iOS Keychain.
+- Secrets are marked `ThisDeviceOnly` where supported.
+- No analytics, tracking identifiers, or advertising identifiers are used.
 
-NovaKey **does not track users** across apps or websites.
+## Data Shared
 
-### Diagnostics
+- Secrets are transmitted **only** to computers you explicitly pair with.
+- Transmission is end-to-end encrypted between the phone and the paired computer.
+- No cloud storage is used.
 
-Optional local logs may exist on the paired computer (*daemon*), not on the iOS device.
+## Tracking
 
----
+NovaKey does not track users across apps or websites.
+NovaKey does not share data with data brokers and does not use data for targeted advertising.
 
-### Privacy Summary
+## Diagnostics
 
-> NovaKey stores secrets locally on your device and sends them only to computers you explicitly pair with.
-> No data is collected, tracked, or shared with third parties.
+NovaKey does not upload logs to the developer.
+The paired computer (NovaKey-Daemon) may generate local logs depending on its configuration.
+
+Note: If you choose to rely on platform crash reporting that is visible in App Store Connect, you may need to disclose **Diagnostics → Crash Data** in App Privacy.
+

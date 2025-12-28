@@ -11,6 +11,18 @@ This guide covers:
 * Sending secrets securely
 * Vault import/export and clipboard behavior
 
+- [Why NovaKey Is Open Source](WHY_OPEN_SOURCE.md)
+
+## Open Source & Trust
+
+NovaKey-iOS is open source so users and security reviewers can audit all
+security-relevant behavior.
+
+The official NovaKey app distributed on the Apple App Store is the supported
+build. Forks may exist, but are not endorsed or supported.
+
+Security does not rely on obscurity.
+
 ---
 
 ## Architecture Overview
@@ -56,6 +68,12 @@ Ensure the `novakey-<distro>-<architecture>` binary is present in the current di
 
 Windows build the executable
 ```powershell
+# By default scripts downloaded from the internet are blocked
+Unblock-File .\build.ps1
+
+# Default execution policy on computers is "Restricted" which will prevent running scripts
+Set-ExecutionPolicy RemoteSigned
+
 .\build.ps1 -Target Windows
 # Creates dist\novakey-windows-amd64.exe
 ````
@@ -81,6 +99,12 @@ macOS Build the novakey-darwin-amd64 binary
 
 Install on Windows
 ```powershell
+# By default scripts downloaded from the internet are blocked
+Unblock-File .\Installers\install-windows.ps1
+
+# Default execution policy on computers is "Restricted" which will prevent running scripts
+Set-ExecutionPolicy RemoteSigned
+
 .\Installers\install-windows.ps1
 ```
 
@@ -308,6 +332,20 @@ Security-critical paths are covered by:
 * Two-Man approval required
 
 ---
+
+## Code Organization & Auditability
+
+NovaKey-iOS is organized to keep all security-relevant behavior explicit
+and auditable.
+
+- Cryptography, protocol handling, and vault logic live in the main app
+  target and are fully open source.
+- UI code does not implement security decisions.
+- No behavior relies on obscurity or undocumented fallbacks.
+
+The project is intentionally kept in a single Xcode app target to simplify
+review, testing, and App Store distribution.
+
 
 ## Final Notes
 

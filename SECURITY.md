@@ -37,6 +37,8 @@ NovaKey uses the STRIDE framework to systematically identify and mitigate threat
 - Background processes
 
 NovaKey **fails closed** across all trust boundaries.
+NovaKey does not rely on the secrecy of its source code.
+All security-relevant behavior is open, explicit, and reviewable.
 
 ---
 

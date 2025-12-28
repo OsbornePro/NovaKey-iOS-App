@@ -1,85 +1,61 @@
 # Why NovaKey?
 
-## The Problem
+## The problem
 
-I could say typing secrets on a keyboard is risky because of:
+Typing high-value secrets on a desktop keyboard can be risky:
 
-* Keyloggers
-* Screen capture malware
-* Remote desktop recording
-* Shoulder surfing
-* Clipboard leaks
+- Keyloggers / malware
+- Screen capture or remote desktop recording
+- Shoulder surfing
+- Clipboard leaks and “secure field” surprises
 
-Beyond these technical risks, the real pain point is human:
+Beyond the technical risks, there’s a human problem:
+- Strong master passwords are hard to memorize.
+- Losing a master password can lock you out completely.
+- Weak or reused master passwords become a single catastrophic failure point.
 
-- Memorizing strong passwords is exhausting.
-- One forgotten master password locks you out of every other credential.
-- Weak or reused master passwords become the single point of failure for the whole vault.
+## The NovaKey goal
 
+Make “use a strong secret” the easy option.
 
-## The NovaKey Goal
+NovaKey is built so your most sensitive secrets can live on your phone and be used on your computer **only when you explicitly decide to send them**.
 
-Never memorize a password again.
-We want a solution where the master secret is stored securely, offline, and outside the attack surface of everyday computing.
-Avoiding keyloggers is just an added security bonus to justify this application.
-  
-## Why NovaKey Solves It
-
-- Zero‑knowledge storage: NovaKey holds the master password in a hardware‑isolated enclave, never exposing it to the OS or network.
-- Resistant to keyloggers, screen capture, clipboard theft, and shoulder surfing because the secret never leaves the device in plaintext.
-- Single‑click retrieval: Unlock your password manager with a biometric or PIN, eliminating the mental load of remembering a complex master phrase.
-- Backup‑ready: Encrypted backups let you recover the master secret without re‑creating it, preserving both security and convenience.
-
-In short, NovaKey removes the weakest link—human memory—from the password‑management chain while defending against the most common credential‑theft vectors.
-
----
-
-## NovaKey’s Approach
+## How NovaKey approaches it
 
 **Your phone becomes the secure keyboard.**
 
-1. Secrets live only on your phone
-2. You explicitly choose when to send
-3. The desktop never learns the secret until the moment of use
-4. Every send is authenticated, encrypted, and policy-checked
+1. Secrets live only on your phone (protected by iOS Keychain).
+2. You explicitly choose when to send.
+3. Each send is authenticated, encrypted, and policy-checked.
+4. The computer only receives the secret at the moment it is needed (to inject or copy locally).
 
----
+## What makes NovaKey different
 
-## What Makes NovaKey Different
+### 🔐 Strong cryptography
+- Post-quantum KEM: ML-KEM-768
+- Authenticated encryption: XChaCha20-Poly1305
+- Replay + freshness protection
 
-### 🔐 Strong Cryptography
+### 🧠 Human-in-the-loop safety
+- Explicit “send now” action
+- Optional arming (“push-to-type”)
+- Optional Two-Man Mode (Approve → Inject)
 
-* Post-quantum secure (ML-KEM-768)
-* Authenticated encryption (XChaCha20-Poly1305)
-* Replay and freshness protection
+### 🚫 No cloud, no tracking
+- No accounts
+- No analytics / telemetry
+- No third-party servers required for core operation
 
-### 🧠 Human-in-the-Loop Security
+### 📋 Safe, visible fallbacks
+If the system cannot type into the focused field (Wayland, secure input, permissions, policy):
+- NovaKey can fall back to copying to clipboard (when enabled)
+- This outcome is explicit and user-visible, not silent
 
-* Explicit approval for every send
-* Optional biometric freshness
-* Optional two-man approval on desktop
+## Threat model philosophy
 
-### 🚫 No Cloud, No Tracking
+> Assume the desktop may be hostile.  
+> Trust the phone’s secure storage.  
+> Require clear user intent.
 
-* No accounts
-* No analytics
-* No telemetry
-* No third-party servers
+NovaKey is designed to reduce secret exposure even when the environment is imperfect.
 
-### 📋 Safe Fallbacks
-
-* If injection isn’t possible (Wayland, secure fields)
-* NovaKey falls back to clipboard **with clear user visibility**
-* No silent downgrade
-
----
-
-## Threat Model Philosophy
-
-> **Assume the desktop is compromised.
-> Trust the phone.
-> Require intent.**
-
-NovaKey is designed to reduce exposure even when the environment is hostile.
-
----
