@@ -39,6 +39,35 @@ struct PairServerKey: Codable {
     let expires_unix: Int64
 }
 
+struct DaemonReply: Decodable {
+    let v: Int
+    let status: UInt8
+    let stage: Stage
+    let reason: Reason
+    let msg: String
+    let ts_unix: Int64
+    let req_id: UInt64
+}
+
+enum Stage: String, Decodable {
+    case msg, inject, approve, arm, disarm
+}
+
+enum Reason: String, Decodable {
+    case ok
+    case clipboard_fallback
+    case inject_unavailable_wayland
+    case not_armed
+    case needs_approve
+    case not_paired
+    case bad_request
+    case bad_timestamp
+    case replay
+    case rate_limit
+    case crypto_fail
+    case internal_error
+}
+
 // Swift 6: avoid capturing mutable locals in NWConnection callbacks.
 private final class _ConnWaiter: @unchecked Sendable {
     let lock = NSLock()
@@ -278,10 +307,11 @@ final class NovaKeyClient {
     }
 
     struct ServerResponse {
-        let status: Status
+        let status: NovaKeyClient.Status
         let message: String
-        let stage: String
-        let reason: String
+        let stage: Stage
+        let reason: Reason
+        let reqID: UInt64
     }
 
     enum ClientError: Error, LocalizedError {
@@ -411,20 +441,19 @@ final class NovaKeyClient {
         let trimmed = data.trimmingTrailingNewlines()
         guard !trimmed.isEmpty else { throw ClientError.badReply("empty response") }
 
-        struct RespD: Decodable {
-            let status: UInt8
-            let msg: String?
-            let stage: String
-            let reason: String
-        }
-
         do {
-            let d = try JSONDecoder().decode(RespD.self, from: trimmed)
+            let d = try JSONDecoder().decode(DaemonReply.self, from: trimmed)
+
+            guard d.v == 1 else {
+                throw ClientError.badReply("unsupported reply version v=\(d.v)")
+            }
+
             return ServerResponse(
                 status: Status.from(raw: d.status),
-                message: d.msg ?? "",
+                message: d.msg,
                 stage: d.stage,
-                reason: d.reason
+                reason: d.reason,
+                reqID: d.req_id
             )
         } catch {
             let raw = String(decoding: trimmed, as: UTF8.self)
