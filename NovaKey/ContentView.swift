@@ -63,27 +63,31 @@ struct ContentView: View {
     }
     private func armTarget(durationMs: Int) async {
         do {
-            let targetSnapshot: (String) = try await MainActor.run {
+            let targetName: String = try await MainActor.run {
                 guard let target = listeners.first(where: { $0.isDefault }) else {
-                    throw NSError(domain: "NovaKey", code: 2, userInfo: [NSLocalizedDescriptionKey: "No Send Target set"])
+                    throw NSError(
+                        domain: "NovaKey",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "No Send Target set"]
+                    )
                 }
-                return (target.displayName)
+                return target.displayName
             }
 
             guard let pairing = PairingManager.load() else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    toast("Not paired with \(targetSnapshot)")
+                    toast("Not paired with \(targetName)")
                 }
                 return
             }
 
             let resp = try await client.sendArm(pairing: pairing, durationMs: durationMs)
-            try await ensureSuccess(resp, targetName: targetSnapshot, stage: "arm")
+            try await ensureSuccess(resp, targetName: targetName, stage: "arm")
 
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Armed \(targetSnapshot) for \(durationMs / 1000)s")
+                toast("Armed \(targetName) for \(durationMs / 1000)s")
             }
         } catch {
             await MainActor.run {
@@ -96,27 +100,31 @@ struct ContentView: View {
 
     private func disarmTarget() async {
         do {
-            let targetSnapshot: (String) = try await MainActor.run {
+            let targetName: String = try await MainActor.run {
                 guard let target = listeners.first(where: { $0.isDefault }) else {
-                    throw NSError(domain: "NovaKey", code: 2, userInfo: [NSLocalizedDescriptionKey: "No Send Target set"])
+                    throw NSError(
+                        domain: "NovaKey",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "No Send Target set"]
+                    )
                 }
-                return (target.displayName)
+                return target.displayName
             }
 
             guard let pairing = PairingManager.load() else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    toast("Not paired with \(targetSnapshot)")
+                    toast("Not paired with \(targetName)")
                 }
                 return
             }
 
             let resp = try await client.sendDisarm(pairing: pairing)
-            try await ensureSuccess(resp, targetName: targetSnapshot, stage: "disarm")
+            try await ensureSuccess(resp, targetName: targetName, stage: "disarm")
 
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Disarmed \(targetSnapshot)")
+                toast("Disarmed \(targetName)")
             }
         } catch {
             await MainActor.run {
@@ -126,7 +134,6 @@ struct ContentView: View {
             }
         }
     }
-
     var body: some View {
         NavigationStack {
             secretsList
