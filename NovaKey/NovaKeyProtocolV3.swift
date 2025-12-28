@@ -61,13 +61,15 @@ enum NovaKeyProtocolV3 {
 
     static func buildArmFrame(pairing: PairingRecord, durationMs: Int? = nil) throws -> Data {
         let pairingBlobJSON = try pairing.toProtocolPairingBlobJSON()
-        let ms = max(1, durationMs ?? 15000) // default 15s
+
+        let requested: Int = durationMs ?? 15_000
+        let clamped: Int = min(max(1, requested), Int(Int32.max)) // keep within Go int32 expectations
 
         var err: NSError?
-        // You must add this symbol in the Go bridge (see section B).
-        guard let nsData = NovakeykemBuildArmFrame(pairingBlobJSON, Int32(ms), &err) else {
+        guard let nsData = NovakeykemBuildArmFrame(pairingBlobJSON, clamped, &err) else {
             throw ProtoError.goBridge(err?.localizedDescription ?? "unknown error")
         }
+
         let data = nsData as Data
         if data.isEmpty { throw ProtoError.emptyFrameReturned }
         return data
