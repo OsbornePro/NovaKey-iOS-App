@@ -29,10 +29,26 @@ struct VaultTransferViews: View {
     @State private var importData: Data?
     @State private var showPasswordPrompt = false
     @State private var importPassword: String = ""
+    @State private var exportCompleted = false
+    @State private var importSelectionCompleted = false
 
     @State private var alertTitle: String = ""
     @State private var alertMessage: String = ""
     @State private var showAlert = false
+    @State private var dismissAfterAlertOK = false
+
+    private func resetSensitiveUI() {
+        password = ""
+        confirmPassword = ""
+        importPassword = ""
+
+        exportData = nil
+        importData = nil
+
+        // optional: also reset pickers if you want
+        // protection = .password
+        // cipher = .aesGcm256
+    }
 
     private var passwordRequired: Bool { protection == .password && cipher != .none }
     private var passwordIsValid: Bool {
@@ -50,35 +66,35 @@ struct VaultTransferViews: View {
                             Text(p.label).tag(p)
                         }
                     }
-
+                    
                     Picker("Cipher", selection: $cipher) {
                         ForEach(VaultCipher.allCases) { c in
                             Text(c.label).tag(c)
                         }
                     }
                     .disabled(protection == .none)
-
+                    
                     if protection == .password {
                         SecureField("Password", text: $password)
                         SecureField("Confirm Password", text: $confirmPassword)
-
+                        
                         if !confirmPassword.isEmpty && password != confirmPassword {
                             Text("Passwords do not match.")
                                 .font(.footnote)
                                 .foregroundStyle(.red)
                         }
                     }
-
+                    
                     Toggle("Require Face ID during export", isOn: $requireFreshBiometric)
-
+                    
                     Button("Export Vault…") { doExport() }
                         .disabled(!passwordIsValid)
                 }
-
+                
                 Section("Import") {
                     Button("Import Vault…") { showingImporter = true }
                 }
-
+                
                 Section {
                     Button("Done") { dismiss() }
                 }
@@ -92,7 +108,9 @@ struct VaultTransferViews: View {
             ) { result in
                 switch result {
                 case .success:
-                    showInfo("Export complete", "Vault file saved.")
+                    exportCompleted = true
+                    resetSensitiveUI()
+                    showInfo("Export complete", "Vault file saved.", dismissOnOK: true)
                 case .failure(let err):
                     showInfo("Export failed", err.localizedDescription)
                 }
@@ -118,7 +136,12 @@ struct VaultTransferViews: View {
                 }
             }
             .alert(alertTitle, isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
+                Button("OK", role: .cancel) {
+                    if dismissAfterAlertOK {
+                        dismissAfterAlertOK = false
+                        dismiss()
+                    }
+                }
             } message: {
                 Text(alertMessage)
             }
@@ -150,6 +173,27 @@ struct VaultTransferViews: View {
                 }
             }
         }
+        .onChange(of: showingExporter) { _, isShowing in
+            // When exporter sheet closes:
+            if !isShowing {
+                if !exportCompleted {
+                    exportData = nil
+                    password = ""
+                    confirmPassword = ""
+                }
+                exportCompleted = false // reset for next time
+            }
+        }
+        .onChange(of: showingImporter) { _, isShowing in
+            // When importer sheet closes:
+            if !isShowing {
+                if !importSelectionCompleted {
+                    importData = nil
+                    importPassword = ""
+                }
+                importSelectionCompleted = false // reset for next time
+            }
+        }
         .onChange(of: protection) { _, newValue in
             // keep UI tidy when switching protection modes
             if newValue == .none {
@@ -165,7 +209,6 @@ struct VaultTransferViews: View {
             }
         }
     }
-
     // MARK: - Export
 
     private func doExport() {
@@ -227,7 +270,8 @@ struct VaultTransferViews: View {
             }
 
             try modelContext.save()
-            showInfo("Import complete", "Imported \(payload.secrets.count) secret(s).")
+            resetSensitiveUI()
+            showInfo("Import complete", "Imported \(payload.secrets.count) secret(s).", dismissOnOK: true)
 
         } catch let e as VaultTransferError {
             if case .passwordRequired = e {
@@ -247,9 +291,10 @@ struct VaultTransferViews: View {
         return try? modelContext.fetch(fetch).first
     }
 
-    private func showInfo(_ title: String, _ message: String) {
+    private func showInfo(_ title: String, _ message: String, dismissOnOK: Bool = false) {
         alertTitle = title
         alertMessage = message
+        dismissAfterAlertOK = dismissOnOK
         showAlert = true
     }
 }
