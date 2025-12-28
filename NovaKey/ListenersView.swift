@@ -10,7 +10,6 @@ import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 
-
 struct ListenersView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -141,7 +140,7 @@ struct ListenersView: View {
     // MARK: - Row
 
     private func listenerRow(_ l: PairedListener) -> some View {
-        let isPaired = (PairingManager.load() != nil)
+        let isPaired = (PairingManager.load(host: l.host, port: l.port) != nil)
         let notesTrimmed = l.notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return Button {
@@ -201,7 +200,7 @@ struct ListenersView: View {
             }
 
             Button("Debug: Check Paired") {
-                let loaded = PairingManager.load()
+                let loaded = PairingManager.load(host: l.host, port: l.port)
                 if loaded != nil {
                     toast("✅ Keychain has pairing for \(l.host):\(l.port)")
                 } else {
@@ -318,6 +317,7 @@ struct ListenersView: View {
 
     private func deleteOne(_ listener: PairedListener, showToast: Bool = true) {
         let wasSendTarget = listener.isDefault
+        PairingManager.resetPairing(host: listener.host, port: listener.port)
 
         modelContext.delete(listener)
         try? modelContext.save()
@@ -429,3 +429,4 @@ private struct EditListenerSheet: View {
         }
     }
 }
+

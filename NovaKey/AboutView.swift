@@ -47,7 +47,9 @@ struct AboutView: View {
 
                 Section("Links") {
                     Link("Documentation", destination: URL(string: "https://novakey.app")!)
-                    Link("GitHub", destination: URL(string: "https://github.com/OsbornePro/NovaKey-Daemon")!)
+                    Link("NovaKey-Daemon", destination: URL(string: "https://github.com/OsbornePro/NovaKey-Daemon")!)
+                    Link("NovaKey-iOS-App", destination: URL(string: "https://github.com/OsbornePro/NovaKey-iOS-App")!)
+                    Link("NovaKeyKEMBridge", destination: URL(string: "https://github.com/OsbornePro/NovaKeyKEMBridge")!)
                     Link("OsbornePro", destination: URL(string: "https://osbornepro.com")!)
                 }
 

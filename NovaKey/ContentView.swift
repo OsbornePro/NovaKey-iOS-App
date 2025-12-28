@@ -61,33 +61,42 @@ struct ContentView: View {
         activeSheet = sheet
         activeSheetRaw = sheet?.rawValue
     }
+
+    // MARK: - Send Target snapshot helper (prod-safe: always uses MainActor to read @Query state)
+
+    private func getSendTargetSnapshot() async throws -> (host: String, port: Int, name: String) {
+        try await MainActor.run {
+            guard let target = listeners.first(where: { $0.isDefault }) else {
+                throw NSError(
+                    domain: "NovaKey",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "No Send Target set"]
+                )
+            }
+            return (target.host, target.port, target.displayName)
+        }
+    }
+
+    // MARK: - Arm/Disarm
+
     private func armTarget(durationMs: Int) async {
         do {
-            let targetName: String = try await MainActor.run {
-                guard let target = listeners.first(where: { $0.isDefault }) else {
-                    throw NSError(
-                        domain: "NovaKey",
-                        code: 2,
-                        userInfo: [NSLocalizedDescriptionKey: "No Send Target set"]
-                    )
-                }
-                return target.displayName
-            }
+            let target = try await getSendTargetSnapshot()
 
-            guard let pairing = PairingManager.load() else {
+            guard let pairing = PairingManager.load(host: target.host, port: target.port) else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    toast("Not paired with \(targetName)")
+                    toast("Not paired with \(target.name)")
                 }
                 return
             }
 
             let resp = try await client.sendArm(pairing: pairing, durationMs: durationMs)
-            try await ensureSuccess(resp, targetName: targetName, stage: "arm")
+            try await ensureSuccess(resp, targetName: target.name, stage: "arm")
 
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Armed \(targetName) for \(durationMs / 1000)s")
+                toast("Armed \(target.name) for \(durationMs / 1000)s")
             }
         } catch {
             await MainActor.run {
@@ -100,31 +109,22 @@ struct ContentView: View {
 
     private func disarmTarget() async {
         do {
-            let targetName: String = try await MainActor.run {
-                guard let target = listeners.first(where: { $0.isDefault }) else {
-                    throw NSError(
-                        domain: "NovaKey",
-                        code: 2,
-                        userInfo: [NSLocalizedDescriptionKey: "No Send Target set"]
-                    )
-                }
-                return target.displayName
-            }
+            let target = try await getSendTargetSnapshot()
 
-            guard let pairing = PairingManager.load() else {
+            guard let pairing = PairingManager.load(host: target.host, port: target.port) else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    toast("Not paired with \(targetName)")
+                    toast("Not paired with \(target.name)")
                 }
                 return
             }
 
             let resp = try await client.sendDisarm(pairing: pairing)
-            try await ensureSuccess(resp, targetName: targetName, stage: "disarm")
+            try await ensureSuccess(resp, targetName: target.name, stage: "disarm")
 
             await MainActor.run {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast("Disarmed \(targetName)")
+                toast("Disarmed \(target.name)")
             }
         } catch {
             await MainActor.run {
@@ -134,6 +134,7 @@ struct ContentView: View {
             }
         }
     }
+
     var body: some View {
         NavigationStack {
             secretsList
@@ -451,14 +452,9 @@ struct ContentView: View {
                 return (item.id, item.name)
             }
 
-            let targetSnapshot: (host: String, port: Int, name: String) = try await MainActor.run {
-                guard let target = listeners.first(where: { $0.isDefault }) else {
-                    throw NSError(domain: "NovaKey", code: 2, userInfo: [NSLocalizedDescriptionKey: "No Send Target set"])
-                }
-                return (target.host, target.port, target.displayName)
-            }
+            let targetSnapshot = try await getSendTargetSnapshot()
 
-            guard let pairing = PairingManager.load() else {
+            guard let pairing = PairingManager.load(host: targetSnapshot.host, port: targetSnapshot.port) else {
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     toast("Not paired with \(targetSnapshot.name)")
@@ -549,7 +545,6 @@ struct ContentView: View {
             return "Success"
 
         case .unknown:
-            // Your enum already has a “catch-all” case, so use it.
             return "Computer returned status 0x\(String(format: "%02X", status.rawValue))."
         }
     }
@@ -644,3 +639,4 @@ private struct TechDetailsSheet: View {
         }
     }
 }
+

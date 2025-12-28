@@ -28,27 +28,27 @@ struct HelpView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Link("Pairing Guide", destination: URL(string: "https://novakey.app/docs/pairing")!)
+                    Link("Pairing Guide", destination: URL(string: "https://novakey.app/en/latest/phone/pairing/")!)
                 }
 
                 Section("Sending & Two-Man Mode") {
                     bullet("Two-man mode is enabled by default on the daemon. This means NovaKey will request approval before sending secrets. Two-man mode is kind of like two people turning the key on a nuclear submarine to launch a nuke.")
                     bullet("If text injection is blocked by something, the daemon by default is set to a 'send-to-clipboard' action which you can change in the 'server_config.yaml' file on your computer.")
-                    Link("Two-Man Mode", destination: URL(string: "https://novakey.app/docs/two-man")!)
-                    Link("Daemon Config", destination: URL(string: "https://novakey.app/docs/config")!)
+                    Link("Two-Man Mode", destination: URL(string: "https://novakey.app/en/latest/phone/sending/#clipboard-mode-behavior")!)
+                    Link("Daemon Config", destination: URL(string: "https://novakey.app/en/latest/daemon/config/")!)
                 }
 
                 Section("Troubleshooting") {
                     bullet("Not paired: open Listeners → Pair/Re-pair. Once you set the IP for a 'Listener' it cannot be changed. You have to delete and re-add the listener if a mistake was made.")
                     bullet("Not armed: disable arming in daemon config or use arm API if enabled.")
                     bullet("Nothing types: check macOS Accessibility permissions or Wayland limitations on Linux.")
-                    Link("Troubleshooting", destination: URL(string: "https://novakey.app/docs/troubleshooting")!)
+                    Link("Troubleshooting", destination: URL(string: "https://novakey.app/en/latest/phone/troubleshooting/")!)
                 }
 
                 Section("Support") {
                     Link("NovaKey Docs", destination: URL(string: "https://novakey.app")!)
                     Link("Security Findings", destination: URL(string: "https://github.com/OsbornePro/NovaKey-Daemon/blob/main/SECURITY.md")!)
-                    Link("GitHub Issues", destination: URL(string: "https://github.com/OsbornePro/NovaKey-Daemon/issues")!)
+                    Link("Submit Issue", destination: URL(string: "https://github.com/OsbornePro/NovaKey-Daemon/issues")!)
                 }
             }
             .navigationTitle("Help")

@@ -29,6 +29,7 @@ enum PairingErrors: Error, LocalizedError {
     case invalidHex
     case invalidServerAddr
     case invalidDeviceKeyLength
+    case unsupportedVersion(Int)
 
     var errorDescription: String? {
         switch self {
@@ -36,16 +37,31 @@ enum PairingErrors: Error, LocalizedError {
         case .invalidHex: return "Invalid device_key_hex"
         case .invalidServerAddr: return "Invalid server address"
         case .invalidDeviceKeyLength: return "device_key_hex must be 32 bytes"
+        case .unsupportedVersion(let v): return "Unsupported pairing version v=\(v)"
         }
     }
 }
 
 enum PairingManager {
     private static let service = "com.novakey.pairing.v3"
-    private static let account = "primary"
 
+    private static func accountKey(host: String, port: Int) -> String {
+        let h = host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "\(h):\(port)"
+    }
+
+    // MARK: - Keychain Save/Load
+
+    /// Existing API (kept): saves using record.serverHost/serverPort
     static func save(_ record: PairingRecord) throws {
+        try save(record, host: record.serverHost, port: record.serverPort)
+    }
+
+    /// Drop-in API (ADDED): call sites in PairingPasteSheet already use this.
+    /// Saves under the listener’s host/port key even if the record contains different values.
+    static func save(_ record: PairingRecord, host: String, port: Int) throws {
         let data = try JSONEncoder().encode(record)
+        let account = accountKey(host: host, port: port)
 
         let del: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -67,7 +83,9 @@ enum PairingManager {
         }
     }
 
-    static func load() -> PairingRecord? {
+    static func load(host: String, port: Int) -> PairingRecord? {
+        let account = accountKey(host: host, port: port)
+
         let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -78,14 +96,12 @@ enum PairingManager {
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(q as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else {
-            return nil
-        }
+        guard status == errSecSuccess, let data = item as? Data else { return nil }
         return try? JSONDecoder().decode(PairingRecord.self, from: data)
     }
 
-    /// Reset pairing record (removes Keychain entry).
-    static func resetPairing() {
+    static func resetPairing(host: String, port: Int) {
+        let account = accountKey(host: host, port: port)
         let del: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -94,90 +110,76 @@ enum PairingManager {
         SecItemDelete(del as CFDictionary)
     }
 
-    private static func parseHostPort(_ s: String) throws -> (String, Int) {
-        let parts = s.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-        guard parts.count == 2,
-              let port = Int(parts[1]),
-              port > 0 else {
-            throw PairingErrors.invalidServerAddr
-        }
+    // MARK: - Parsing nvpair JSON (ADDED)
 
-        let host = String(parts[0])
-        guard !host.isEmpty else { throw PairingErrors.invalidServerAddr }
-        return (host, port)
-    }
+    /// Drop-in API (ADDED): PairingPasteSheet.saveManualJSON() calls this.
+    /// Accepts:
+    /// - raw nvpair JSON
+    /// - OR "novakey://pair?...": (if a user pastes the QR URL here, we reject with invalidJSON)
+    static func parsePairingJSON(_ raw: String) throws -> PairingRecord {
+        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { throw PairingErrors.invalidJSON }
 
-    /// Accepts either:
-    /// 1) nvpair blob:
-    ///    { v, device_id, device_key_hex, server_addr, server_kyber768_pub }
-    ///
-    /// 2) alternate manual blob:
-    ///    { server_url, device_id, device_key_hex, kyber768_public }  (or server_kyber768_pub)
-    static func parsePairingJSON(_ json: String) throws -> PairingRecord {
-        guard let data = json.data(using: .utf8) else { throw PairingErrors.invalidJSON }
-
-        // --- Format 1: canonical nvpair blob ---
-        if let blob = try? JSONDecoder().decode(PairingBlob.self, from: data) {
-            let (host, port) = try parseHostPort(blob.server_addr)
-
-            guard let keyBytes = Data(hexString: blob.device_key_hex) else {
-                throw PairingErrors.invalidHex
-            }
-            guard keyBytes.count == 32 else {
-                throw PairingErrors.invalidDeviceKeyLength
-            }
-
-            return PairingRecord(
-                deviceID: blob.device_id,
-                deviceKey: keyBytes,
-                serverHost: host,
-                serverPort: port,
-                serverPubB64: blob.server_kyber768_pub
-            )
-        }
-
-        // --- Format 2: manual blob (server_url + key + pub) ---
-        struct AltBlob: Decodable {
-            let server_url: String
-            let device_id: String
-            let device_key_hex: String
-            let kyber768_public: String?
-            let server_kyber768_pub: String?
-        }
-
-        guard let alt = try? JSONDecoder().decode(AltBlob.self, from: data) else {
+        // If someone pastes the QR URL into the JSON box, make it fail loudly.
+        if s.lowercased().hasPrefix("novakey://") {
             throw PairingErrors.invalidJSON
         }
 
-        guard let url = URL(string: alt.server_url),
-              let host = url.host,
-              let port = url.port else {
-            throw PairingErrors.invalidServerAddr
+        guard let data = s.data(using: .utf8) else { throw PairingErrors.invalidJSON }
+        let blob: PairingBlob
+        do {
+            blob = try JSONDecoder().decode(PairingBlob.self, from: data)
+        } catch {
+            throw PairingErrors.invalidJSON
         }
 
-        guard let keyBytes = Data(hexString: alt.device_key_hex) else {
+        // v: allow 3 (your current pairing blob version)
+        if blob.v != 3 {
+            throw PairingErrors.unsupportedVersion(blob.v)
+        }
+
+        let deviceID = blob.device_id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !deviceID.isEmpty else { throw PairingErrors.invalidJSON }
+
+        guard let keyData = Data(hexString: blob.device_key_hex) else {
             throw PairingErrors.invalidHex
         }
-        guard keyBytes.count == 32 else {
+        guard keyData.count == 32 else {
             throw PairingErrors.invalidDeviceKeyLength
         }
 
-        let pub = alt.server_kyber768_pub ?? alt.kyber768_public ?? ""
+        let (host, port) = try parseHostPort(blob.server_addr)
+        let pub = blob.server_kyber768_pub.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !pub.isEmpty else { throw PairingErrors.invalidJSON }
 
         return PairingRecord(
-            deviceID: alt.device_id,
-            deviceKey: keyBytes,
+            deviceID: deviceID,
+            deviceKey: keyData,
             serverHost: host,
             serverPort: port,
             serverPubB64: pub
         )
     }
+
+    private static func parseHostPort(_ s: String) throws -> (String, Int) {
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2 else { throw PairingErrors.invalidServerAddr }
+
+        let host = String(parts[0]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty else { throw PairingErrors.invalidServerAddr }
+
+        guard let port = Int(parts[1]), port > 0, port <= 65535 else {
+            throw PairingErrors.invalidServerAddr
+        }
+
+        return (host, port)
+    }
 }
 
 // MARK: - Stable Device ID (Keychain)
-// This is the key fix: the phone keeps a consistent device_id across repairs,
-// unless the user explicitly resets pairing.
+// The phone keeps a consistent device_id across re-pairs,
+// unless the user explicitly resets pairing (UI calls DeviceIDManager.reset()).
 enum DeviceIDManager {
     private static let service = "com.novakey.deviceid.v1"
     private static let account = "primary"
@@ -258,3 +260,4 @@ extension Data {
         self = out
     }
 }
+

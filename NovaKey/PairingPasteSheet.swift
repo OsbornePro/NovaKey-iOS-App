@@ -175,7 +175,7 @@ struct PairingPasteSheet: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
                     // wipe both: pairing record + stable device id
-                    PairingManager.resetPairing()
+                    PairingManager.resetPairing(host: listener.host, port: listener.port)
                     DeviceIDManager.reset()
 
                     // Clear UI draft so user doesn't accidentally reuse stale JSON
@@ -397,7 +397,7 @@ struct PairingPasteSheet: View {
                 serverPubB64: sk.kyber_pub_b64
             )
 
-            try PairingManager.save(rec)
+            try PairingManager.save(rec, host: listener.host, port: listener.port)
 
             await MainActor.run {
                 jsonText = ""
