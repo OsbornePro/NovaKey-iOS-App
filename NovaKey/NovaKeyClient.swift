@@ -2,17 +2,12 @@
 //  NovaKeyClient.swift
 //  NovaKey
 //
-//  DROP-IN REPLACEMENT (compiles with your current ServerResponse fields)
-//
-//  Fixes:
-//  1) No duplicate readLine()
-//  2) Deterministic daemon reply read: reads ONE newline-terminated JSON line
-//  3) parseServerResponse returns ALL required fields:
-//        status, message, stage, reason, reqID
+//  DROP-IN REPLACEMENT
 //
 //  Notes:
 //  - Pairing (/pair) still uses sendFinal (EOF) because pairing handler reads until EOF.
 //  - Send (/msg) uses normal send (no half-close) and reads a single JSON line.
+//  - Adds clipboard-fallback UX helpers: ServerResponse.isClipboardFallback + userFacingMessage
 //
 
 import Foundation
@@ -43,22 +38,49 @@ struct PairServerKey: Codable {
     let expires_unix: Int64
 }
 
-// These MUST match your daemon JSON reply schema in reply.go
+// reply.go schema:
+// { v, status, stage, reason, msg, ts_unix, req_id }
 private struct DaemonReply: Decodable {
     let v: Int
     let status: UInt8
-    let stage: Stage
-    let reason: Reason
+    let stage: ReplyStage
+    let reason: ReplyReason
     let msg: String
     let ts_unix: Int64
     let req_id: UInt64
 }
 
-enum Stage: String, Decodable {
+// Forward-compatible: unknown strings don't break decoding.
+enum ReplyStage: Decodable, Equatable, CustomStringConvertible {
     case msg, inject, approve, arm, disarm
+    case unknown(String)
+
+    var description: String {
+        switch self {
+        case .msg: return "msg"
+        case .inject: return "inject"
+        case .approve: return "approve"
+        case .arm: return "arm"
+        case .disarm: return "disarm"
+        case .unknown(let s): return "unknown(\(s))"
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        let raw = try c.decode(String.self)
+        switch raw {
+        case "msg": self = .msg
+        case "inject": self = .inject
+        case "approve": self = .approve
+        case "arm": self = .arm
+        case "disarm": self = .disarm
+        default: self = .unknown(raw)
+        }
+    }
 }
 
-enum Reason: String, Decodable {
+enum ReplyReason: Decodable, Equatable, CustomStringConvertible {
     case ok
     case clipboard_fallback
     case inject_unavailable_wayland
@@ -71,6 +93,45 @@ enum Reason: String, Decodable {
     case rate_limit
     case crypto_fail
     case internal_error
+    case unknown(String)
+
+    var description: String {
+        switch self {
+        case .ok: return "ok"
+        case .clipboard_fallback: return "clipboard_fallback"
+        case .inject_unavailable_wayland: return "inject_unavailable_wayland"
+        case .not_armed: return "not_armed"
+        case .needs_approve: return "needs_approve"
+        case .not_paired: return "not_paired"
+        case .bad_request: return "bad_request"
+        case .bad_timestamp: return "bad_timestamp"
+        case .replay: return "replay"
+        case .rate_limit: return "rate_limit"
+        case .crypto_fail: return "crypto_fail"
+        case .internal_error: return "internal_error"
+        case .unknown(let s): return "unknown(\(s))"
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        let raw = try c.decode(String.self)
+        switch raw {
+        case "ok": self = .ok
+        case "clipboard_fallback": self = .clipboard_fallback
+        case "inject_unavailable_wayland": self = .inject_unavailable_wayland
+        case "not_armed": self = .not_armed
+        case "needs_approve": self = .needs_approve
+        case "not_paired": self = .not_paired
+        case "bad_request": self = .bad_request
+        case "bad_timestamp": self = .bad_timestamp
+        case "replay": self = .replay
+        case "rate_limit": self = .rate_limit
+        case "crypto_fail": self = .crypto_fail
+        case "internal_error": self = .internal_error
+        default: self = .unknown(raw)
+        }
+    }
 }
 
 // Swift 6: avoid capturing mutable locals in NWConnection callbacks.
@@ -249,15 +310,11 @@ final class NovaKeyPairClient {
     }
 
     private func readAck(_ conn: NWConnection, maxBytes: Int) async throws -> Data {
-        // 1) nonce (exactly 24 bytes)
         let nonce = try await readExact(conn, count: 24)
-
-        // 2) read ONE chunk of ciphertext (should contain the whole ack)
         let ct = try await receive(conn, min: 1, max: min(4096, maxBytes - 24))
         if ct.isEmpty {
             throw NovaKeyPairError.protocolError("empty ack ciphertext")
         }
-
         let ack = nonce + ct
         guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
@@ -311,9 +368,25 @@ final class NovaKeyClient {
     struct ServerResponse {
         let status: NovaKeyClient.Status
         let message: String
-        let stage: Stage
-        let reason: Reason
+        let stage: ReplyStage
+        let reason: ReplyReason
         let reqID: UInt64
+        let replyVersion: Int
+        let tsUnix: Int64
+
+        // ✅ Clipboard UX normalization
+        var isClipboardFallback: Bool {
+            status == .okClipboard ||
+            reason == .clipboard_fallback ||
+            reason == .inject_unavailable_wayland
+        }
+
+        var userFacingMessage: String {
+            if isClipboardFallback {
+                return "Copied to clipboard. Paste into the focused field."
+            }
+            return message.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
 
     enum ClientError: Error, LocalizedError {
@@ -438,7 +511,7 @@ final class NovaKeyClient {
         return buffer
     }
 
-    // MARK: Reply parsing (FIXED: fills stage/reason/reqID)
+    // MARK: Reply parsing
 
     private func parseServerResponse(_ data: Data) throws -> ServerResponse {
         let trimmed = data.trimmingTrailingNewlines()
@@ -446,12 +519,20 @@ final class NovaKeyClient {
 
         do {
             let d = try JSONDecoder().decode(DaemonReply.self, from: trimmed)
+
+            // reply.go: replyVersion = 1
+            guard d.v == 1 else {
+                throw ClientError.badReply("unsupported reply version v=\(d.v)")
+            }
+
             return ServerResponse(
                 status: Status.from(raw: d.status),
                 message: d.msg,
                 stage: d.stage,
                 reason: d.reason,
-                reqID: d.req_id
+                reqID: d.req_id,
+                replyVersion: d.v,
+                tsUnix: d.ts_unix
             )
         } catch {
             let raw = String(decoding: trimmed, as: UTF8.self)
@@ -467,3 +548,4 @@ private extension Data {
         return d
     }
 }
+

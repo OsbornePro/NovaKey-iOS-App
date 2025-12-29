@@ -163,7 +163,11 @@ struct PairingPasteSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveAction() }
-                        .disabled(isWorking || jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(
+                            isWorking ||
+                            showPairConfirmDialog ||
+                            jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
                 }
 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -175,10 +179,8 @@ struct PairingPasteSheet: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
                     // wipe both: pairing record + stable device id
-                    PairingManager.resetPairing(host: listener.host, port: listener.port)
-                    DeviceIDManager.reset()
+                    PairingManager.resetPairing(host: listener.host, port: listener.port, resetDeviceID: true)
 
-                    // Clear UI draft so user doesn't accidentally reuse stale JSON
                     clearDraft()
                     pendingLink = nil
                     errorText = nil
@@ -313,6 +315,7 @@ struct PairingPasteSheet: View {
     
     @MainActor
     private func presentConfirm(for link: PairBootstrapLink) {
+        editorFocused = false
         pendingLink = link
         pendingConfirmTitle = "Confirm Pairing"
         pendingConfirmMessage =
@@ -400,9 +403,9 @@ struct PairingPasteSheet: View {
             try PairingManager.save(rec, host: listener.host, port: listener.port)
 
             await MainActor.run {
-                jsonText = ""
-                dismiss()
+                clearDraft()
                 onDone(.saved)
+                dismiss()
             }
 
         } catch {

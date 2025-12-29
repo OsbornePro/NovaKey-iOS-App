@@ -447,7 +447,11 @@ struct ContentView: View {
         do {
             let secretSnapshot: (id: UUID, name: String) = try await MainActor.run {
                 guard let item = selectedSecret else {
-                    throw NSError(domain: "NovaKey", code: 1, userInfo: [NSLocalizedDescriptionKey: "No secret selected"])
+                    throw NSError(
+                        domain: "NovaKey",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "No secret selected"]
+                    )
                 }
                 return (item.id, item.name)
             }
@@ -507,9 +511,23 @@ struct ContentView: View {
 
                 case .okClipboard:
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    let msg = Self.clean(injectResp.message)
-                    let prefix = msg.lowercased().contains("wayland") ? "🟣📋 " : "📋 "
-                    toast(msg.isEmpty ? "📋 Copied to clipboard on \(targetSnapshot.name)" : "\(prefix)\(msg)")
+
+                    let prefix: String
+                    switch injectResp.reason {
+                    case .inject_unavailable_wayland:
+                        prefix = "🟣📋 "
+                    default:
+                        prefix = "📋 "
+                    }
+
+                    let base = injectResp.userFacingMessage
+                    let extra = Self.clean(injectResp.message)
+
+                    if extra.isEmpty || extra == base {
+                        toast("\(prefix)\(base)")
+                    } else {
+                        toast("\(prefix)\(base) (\(extra))")
+                    }
 
                 default:
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -565,8 +583,12 @@ struct ContentView: View {
 
         let raw = Self.clean(resp.message)
         let detailBlock = """
-        Stage: \(stage)
+        Stage: \(resp.stage)
+        Reason: \(resp.reason)
         Status: \(resp.status) (0x\(String(format: "%02X", resp.status.rawValue)))
+        ReqID: \(resp.reqID)
+        TsUnix: \(resp.tsUnix)
+        ReplyV: \(resp.replyVersion)
         Message: \(raw.isEmpty ? "<empty>" : raw)
         Target: \(targetName)
         """

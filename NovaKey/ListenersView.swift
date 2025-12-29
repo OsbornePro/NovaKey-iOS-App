@@ -317,8 +317,16 @@ struct ListenersView: View {
 
     private func deleteOne(_ listener: PairedListener, showToast: Bool = true) {
         let wasSendTarget = listener.isDefault
-        PairingManager.resetPairing(host: listener.host, port: listener.port)
 
+        // 1) Delete pairing only for this listener (DeviceID is global; don't reset here)
+        PairingManager.resetPairing(host: listener.host, port: listener.port, resetDeviceID: false)
+
+        // 2) Delete any in-progress pairing draft for this listener
+        let draftKey = "pairing.json.draft.\(listener.host):\(listener.port)"
+        UserDefaults.standard.removeObject(forKey: draftKey)
+
+
+        // 3) Delete from model
         modelContext.delete(listener)
         try? modelContext.save()
 
