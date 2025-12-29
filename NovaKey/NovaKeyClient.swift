@@ -374,7 +374,7 @@ final class NovaKeyClient {
         let replyVersion: Int
         let tsUnix: Int64
 
-        // ✅ Clipboard UX normalization
+        // Clipboard UX normalization
         var isClipboardFallback: Bool {
             status == .okClipboard ||
             reason == .clipboard_fallback ||
@@ -466,12 +466,22 @@ final class NovaKeyClient {
                 switch st {
                 case .ready:
                     waiter.finished = true
+                    conn.stateUpdateHandler = nil
                     waiter.cont?.resume(returning: ())
                     waiter.cont = nil
+
                 case .failed(let e):
                     waiter.finished = true
+                    conn.stateUpdateHandler = nil
                     waiter.cont?.resume(throwing: ClientError.connectFailed(e))
                     waiter.cont = nil
+
+                case .cancelled:
+                    waiter.finished = true
+                    conn.stateUpdateHandler = nil
+                    waiter.cont?.resume(throwing: ClientError.connectFailed(nil))
+                    waiter.cont = nil
+
                 default:
                     break
                 }
@@ -492,8 +502,16 @@ final class NovaKeyClient {
 
     private func receive(_ conn: NWConnection, min: Int, max: Int) async throws -> Data {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
-            conn.receive(minimumIncompleteLength: min, maximumLength: max) { data, _, _, err in
-                if let err { cont.resume(throwing: err); return }
+            conn.receive(minimumIncompleteLength: min, maximumLength: max) { data, _, isComplete, err in
+                if let err {
+                    cont.resume(throwing: err)
+                    return
+                }
+                if isComplete {
+                    // peer closed — return whatever we got (maybe empty)
+                    cont.resume(returning: data ?? Data())
+                    return
+                }
                 cont.resume(returning: data ?? Data())
             }
         }
@@ -548,4 +566,3 @@ private extension Data {
         return d
     }
 }
-

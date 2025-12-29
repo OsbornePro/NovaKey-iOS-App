@@ -234,10 +234,13 @@ struct PairingPasteSheet: View {
                 do {
                     guard let url = try result.get().first else { return }
                     let data = try Data(contentsOf: url)
-                    guard let s = String(data: data, encoding: .utf8) else {
-                        errorText = "File is not UTF-8 text."
+
+                    let s = String(decoding: data, as: UTF8.self)
+                    guard !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        errorText = "File is empty."
                         return
                     }
+
                     jsonText = s
                     editorFocused = true
                 } catch {
