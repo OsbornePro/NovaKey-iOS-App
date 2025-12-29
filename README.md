@@ -5,7 +5,7 @@ Secrets live **only** on your iPhone and are transmitted to your computer *on de
   
 This guide covers:
 
-* Installing the NovaKey daemon on Linux
+* Installing the NovaKey daemon on Linux, Windows, and MacOS
 * Pairing the iOS app with a computer
 * Adding secrets and listeners
 * Sending secrets securely
