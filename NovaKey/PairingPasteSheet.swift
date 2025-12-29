@@ -59,11 +59,11 @@ struct PairingPasteSheet: View {
                 Text("Pairing JSON")
                     .font(.headline)
                     .padding(.top, 8)
-
+                
                 Text("Paste nvpair JSON, import a file, or scan the daemon QR code.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-
+                
                 HStack(spacing: 10) {
                     Button {
                         guard !isWorking else { return }
@@ -75,7 +75,7 @@ struct PairingPasteSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-
+                    
                     Button {
                         guard !isWorking else { return }
                         errorText = nil
@@ -90,7 +90,7 @@ struct PairingPasteSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-
+                    
                     Button {
                         guard !isWorking else { return }
                         errorText = nil
@@ -100,7 +100,7 @@ struct PairingPasteSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-
+                    
                     Button(role: .destructive) {
                         guard !isWorking else { return }
                         errorText = nil
@@ -111,7 +111,7 @@ struct PairingPasteSheet: View {
                     }
                     .buttonStyle(.bordered)
                 }
-
+                
                 TextEditor(text: $jsonText)
                     .font(.system(.footnote, design: .monospaced))
                     .autocorrectionDisabled()
@@ -121,7 +121,7 @@ struct PairingPasteSheet: View {
                     .padding(10)
                     .background(.thinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
+                
                 if isWorking {
                     HStack(spacing: 10) {
                         ProgressView()
@@ -131,13 +131,13 @@ struct PairingPasteSheet: View {
                     }
                     .padding(.top, 6)
                 }
-
+                
                 if let errorText {
                     Text(errorText)
                         .foregroundStyle(.red)
                         .font(.footnote)
                 }
-
+                
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -152,7 +152,7 @@ struct PairingPasteSheet: View {
                     }
                     .disabled(isWorking)
                 }
-
+                
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
@@ -160,7 +160,7 @@ struct PairingPasteSheet: View {
                     }
                     .disabled(isWorking)
                 }
-
+                
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveAction() }
                         .disabled(
@@ -169,7 +169,7 @@ struct PairingPasteSheet: View {
                             jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         )
                 }
-
+                
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { editorFocused = false }
@@ -180,7 +180,7 @@ struct PairingPasteSheet: View {
                 Button("Reset", role: .destructive) {
                     // wipe both: pairing record + stable device id
                     PairingManager.resetPairing(host: listener.host, port: listener.port, resetDeviceID: true)
-
+                    
                     clearDraft()
                     pendingLink = nil
                     errorText = nil
@@ -234,13 +234,20 @@ struct PairingPasteSheet: View {
                 do {
                     guard let url = try result.get().first else { return }
                     let data = try Data(contentsOf: url)
-
-                    let s = String(decoding: data, as: UTF8.self)
-                    guard !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    
+                    // Force optional type so Swift can't "decide" it's non-optional.
+                    let sOpt: String? = String(data: data, encoding: .utf8)
+                    guard let s = sOpt else {
+                        errorText = "File is not valid UTF-8 text."
+                        return
+                    }
+                    
+                    let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
                         errorText = "File is empty."
                         return
                     }
-
+                    
                     jsonText = s
                     editorFocused = true
                 } catch {
