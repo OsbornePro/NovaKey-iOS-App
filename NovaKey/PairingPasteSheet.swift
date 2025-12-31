@@ -289,7 +289,7 @@ struct PairingPasteSheet: View {
                 let link = try decodeNovaKeyPairQRLink(trimmed)
                 presentConfirm(for: link)
             } catch {
-                errorText = error.localizedDescription
+                errorText = error .localizedDescription
                 onDone(.failed)
             }
             return
