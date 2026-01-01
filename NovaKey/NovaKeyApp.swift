@@ -47,6 +47,7 @@ struct NovaKeyApp: App {
         WindowGroup {
             AppGateView()
                 .environmentObject(appLock)
+                .environmentObject(ProStore.shared)
                 .preferredColorScheme(appearanceMode.colorScheme)
                 .task { await appLock.unlockIfNeeded() }
         }

@@ -14,6 +14,7 @@ struct ListenersView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.editMode) private var editMode
+    @EnvironmentObject private var proStore: ProStore
 
     @Query(sort: \PairedListener.displayName) private var listeners: [PairedListener]
 
@@ -29,7 +30,8 @@ struct ListenersView: View {
     @State private var editNameText: String = ""
     @State private var editNotesText: String = ""
     @State private var showEditSheet = false
-
+    @State private var showLimitAlert = false
+    @State private var showPaywall = false
     @State private var toastText: String?
     @State private var showToast = false
 
@@ -92,6 +94,13 @@ struct ListenersView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Listeners")
+        .alert("Limit reached", isPresented: $showLimitAlert) {
+            Button("Unlock Pro") { showPaywall = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Free version allows only 1 listener. Unlock Pro for unlimited listeners.")
+        }
+        .sheet(isPresented: $showPaywall) { ProPaywallView() }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { EditButton() }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -278,6 +287,14 @@ struct ListenersView: View {
     // MARK: - Add / Delete
 
     private func addListener() {
+        // Free tier: allow only 1 listener total.
+        if !proStore.isProUnlocked && listeners.count >= 1 {
+            toast("Free version allows 1 listener. Unlock Pro for unlimited.")
+            A11yAnnounce.say("Free version allows one listener. Unlock Pro for unlimited.")
+            presentLimitAlert()
+            return
+        }
+
         guard let port = Int(portText) else { return }
 
         let new = PairedListener(
@@ -342,6 +359,11 @@ struct ListenersView: View {
             remaining[0].isDefault = true
             try? modelContext.save()
         }
+    }
+
+    private func presentLimitAlert() {
+        showLimitAlert = true
+        A11yAnnounce.say("Limit reached. Unlock Pro to add more listeners.")
     }
 
     // MARK: - Toast

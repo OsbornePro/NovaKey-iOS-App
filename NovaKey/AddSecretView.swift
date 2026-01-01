@@ -6,11 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 import UIKit
 
 struct AddSecretView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var proStore: ProStore
+    @Query private var secrets: [SecretItem]
 
     // Persist drafts across leaving app & returning (scene-based persistence)
     @SceneStorage("AddSecret.name") private var name: String = ""
@@ -18,6 +21,8 @@ struct AddSecretView: View {
     @SceneStorage("AddSecret.confirm") private var confirm: String = ""
 
     @State private var errorMessage: String?
+    @State private var showLimitAlert: Bool = false
+    @State private var showPaywall: Bool = false
     @available(iOS 16.0, *)
     private func pasteButton(assign: @escaping (String) -> Void) -> some View {
         PasteButton(payloadType: Data.self) { items in
@@ -51,6 +56,7 @@ struct AddSecretView: View {
                         } else {
                             Button { paste(into: .secret) } label: {
                                 Image(systemName: "doc.on.clipboard")
+                                .a11yIconButton(label: "Paste from Clipboard", hint: "Pastes text from the system clipboard.")
                             }
                             .buttonStyle(.borderless)
                         }
@@ -66,6 +72,7 @@ struct AddSecretView: View {
                         } else {
                             Button { paste(into: .confirm) } label: {
                                 Image(systemName: "doc.on.clipboard")
+                                .a11yIconButton(label: "Paste from Clipboard", hint: "Pastes text from the system clipboard.")
                             }
                             .buttonStyle(.borderless)
                         }
@@ -93,6 +100,13 @@ struct AddSecretView: View {
                 }
             }
             .navigationTitle("New Secret")
+            .alert("Limit reached", isPresented: $showLimitAlert) {
+                Button("Unlock Pro") { showPaywall = true }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Free version allows only 1 secret. Unlock Pro for unlimited secrets.")
+            }
+            .sheet(isPresented: $showPaywall) { ProPaywallView() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -132,6 +146,14 @@ struct AddSecretView: View {
     }
 
     private func save() {
+        // Free tier: allow only 1 secret total.
+        if !proStore.isProUnlocked && secrets.count >= 1 {
+            errorMessage = "Free version allows 1 secret. Unlock Pro for unlimited."
+            A11yAnnounce.say("Limit reached. Free version allows one secret. Unlock Pro for unlimited.")
+            showLimitAlert = true
+            return
+        }
+
         guard secret == confirm else {
             errorMessage = "Secrets do not match"
             return

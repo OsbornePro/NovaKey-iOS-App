@@ -12,12 +12,14 @@ import UIKit
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var proStore: ProStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Query(sort: \SecretItem.updatedAt, order: .reverse) private var secrets: [SecretItem]
     @Query private var listeners: [PairedListener]
 
     private enum ActiveSheet: String, Identifiable {
-        case add, listeners, settings, exportVault, importVault, about, help
+        case add, listeners, settings, exportVault, importVault, about, help, proPaywall
         var id: String { rawValue }
     }
 
@@ -32,13 +34,22 @@ struct ContentView: View {
     @State private var techDetailsTitle: String = "NovaKey"
     @State private var techDetailsBody: String = ""
 
+    // Free-tier alert -> paywall
+    @State private var showLimitAlert = false
+    @State private var pendingPaywallReason: String = ""
+
+    // Row action dialog
     @State private var selectedSecret: SecretItem?
     @State private var showActions = false
 
+    // Delete confirm
     @State private var pendingDelete: SecretItem?
     @State private var showDeleteConfirm = false
 
+    // Toast
     @State private var statusToast: String?
+
+    // Privacy cover
     @State private var privacyCover = false
 
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
@@ -57,12 +68,45 @@ struct ContentView: View {
         return secrets.filter { $0.name.localizedCaseInsensitiveContains(q) }
     }
 
+    // MARK: - Free tier gating + sheet routing
+
     private func setActiveSheet(_ sheet: ActiveSheet?) {
+        guard let sheet else {
+            activeSheet = nil
+            activeSheetRaw = nil
+            return
+        }
+
+        if !proStore.isProUnlocked {
+            switch sheet {
+            case .add:
+                if secrets.count >= 1 {
+                    toast("Free version allows 1 secret. Unlock Pro for unlimited.")
+                    presentLimitAlert("Free version allows only 1 secret.")
+                    return
+                }
+            case .listeners:
+                if listeners.count >= 1 {
+                    toast("Free version allows 1 listener. Unlock Pro for unlimited.")
+                    presentLimitAlert("Free version allows only 1 listener.")
+                    return
+                }
+            default:
+                break
+            }
+        }
+
         activeSheet = sheet
-        activeSheetRaw = sheet?.rawValue
+        activeSheetRaw = sheet.rawValue
     }
 
-    // MARK: - Send Target snapshot helper (prod-safe: always uses MainActor to read @Query state)
+    private func presentLimitAlert(_ reason: String) {
+        pendingPaywallReason = reason
+        showLimitAlert = true
+        A11yAnnounce.say("Limit reached. Unlock Pro to remove limits.")
+    }
+
+    // MARK: - Send Target snapshot helper (prod-safe)
 
     private func getSendTargetSnapshot() async throws -> (host: String, port: Int, name: String) {
         try await MainActor.run {
@@ -135,6 +179,8 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - View
+
     var body: some View {
         NavigationStack {
             secretsList
@@ -142,6 +188,7 @@ struct ContentView: View {
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
                 .toolbar { topToolbar }
 
+                // Secret actions
                 .confirmationDialog(
                     "Secret Actions",
                     isPresented: $showActions,
@@ -166,6 +213,17 @@ struct ContentView: View {
                     Text(selectedSecret?.name ?? "")
                 }
 
+                // Limit alert -> paywall
+                .alert("Limit reached", isPresented: $showLimitAlert) {
+                    Button("Unlock Pro") {
+                        setActiveSheet(.proPaywall)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("\(pendingPaywallReason) Unlock Pro to remove limits.")
+                }
+
+                // Delete confirm
                 .alert("Delete this secret?",
                        isPresented: $showDeleteConfirm) {
                     Button("Delete", role: .destructive) {
@@ -179,22 +237,17 @@ struct ContentView: View {
                     Text("This cannot be undone.")
                 }
 
+                // Sheets
                 .sheet(item: $activeSheet) { sheet in
                     switch sheet {
-                    case .about:
-                        AboutView()
-                    case .help:
-                        HelpView()
-                    case .add:
-                        AddSecretView()
-                    case .listeners:
-                        ListenersView()
-                    case .settings:
-                        SettingsView()
-                    case .exportVault:
-                        ExportVaultView()
-                    case .importVault:
-                        ImportVaultView()
+                    case .about: AboutView()
+                    case .help: HelpView()
+                    case .add: AddSecretView()
+                    case .proPaywall: ProPaywallView()
+                    case .listeners: ListenersView()
+                    case .settings: SettingsView()
+                    case .exportVault: ExportVaultView()
+                    case .importVault: ImportVaultView()
                     }
                 }
 
@@ -225,7 +278,7 @@ struct ContentView: View {
             }
         }
 
-        // Renamed to avoid collision with your existing TechnicalDetailsSheet type
+        // Technical details sheet
         .sheet(isPresented: $showTechDetails) {
             TechDetailsSheet(title: techDetailsTitle, details: techDetailsBody)
         }
@@ -278,9 +331,13 @@ struct ContentView: View {
     private var topToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button { setActiveSheet(.listeners) } label: {
-                Image(systemName: "antenna.radiowaves.left.and.right")
+                Label("Listeners", systemImage: "antenna.radiowaves.left.and.right")
             }
             .accessibilityLabel("Listeners")
+        }
+
+        ToolbarItem(placement: .principal) {
+            TierBadge(isPro: proStore.isProUnlocked)
         }
 
         ToolbarItem(placement: .topBarTrailing) {
@@ -292,22 +349,50 @@ struct ContentView: View {
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 }
+
                 Divider()
+
                 Button("Export Vault") { setActiveSheet(.exportVault) }
                 Button("Import Vault") { setActiveSheet(.importVault) }
+
                 Divider()
+
+                if !proStore.isProUnlocked {
+                    Button("Unlock Pro") { setActiveSheet(.proPaywall) }
+                }
+
+                Button("Restore Purchases") {
+                    Task {
+                        await proStore.restorePurchases()
+                        if proStore.isProUnlocked {
+                            toast("Pro unlocked")
+                            A11yAnnounce.say("Pro unlocked")
+                        } else if let msg = proStore.lastErrorMessage {
+                            toast(msg)
+                            A11yAnnounce.say(msg)
+                        } else {
+                            toast("No purchases to restore")
+                            A11yAnnounce.say("No purchases to restore")
+                        }
+                    }
+                }
+
+                Divider()
+
                 Button("Settings") { setActiveSheet(.settings) }
                 Button("Help") { setActiveSheet(.help) }
                 Button("About") { setActiveSheet(.about) }
             } label: {
-                Image(systemName: "gearshape.fill")
+                // Use a label for Voice Control friendliness
+                Label("Menu", systemImage: "gearshape.fill")
+                    .labelStyle(.iconOnly)
             }
             .accessibilityLabel("Settings Menu")
         }
 
         ToolbarItem(placement: .topBarTrailing) {
             Button { setActiveSheet(.add) } label: {
-                Image(systemName: "plus.circle.fill")
+                Label("Add Secret", systemImage: "plus.circle.fill")
             }
             .accessibilityLabel("Add Secret")
         }
@@ -380,13 +465,46 @@ struct ContentView: View {
             )
         }
         .buttonStyle(.plain)
+        .a11yCombine()
+        .accessibilityHint("Double tap for actions.")
     }
+
+    // MARK: - Badge (non-color-only, accessible)
+
+    private struct TierBadge: View {
+        let isPro: Bool
+
+        var body: some View {
+            HStack(spacing: 8) {
+                Text("NovaKey")
+                    .font(.headline)
+
+                Text(isPro ? "PRO" : "FREE")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.thinMaterial)
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(.secondary, lineWidth: 1)
+                    )
+                    .accessibilityLabel(isPro ? "Tier Pro" : "Tier Free")
+                    .accessibilityHint(isPro ? "Pro features unlocked." : "Free tier. Some limits apply.")
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    // MARK: - Helpers
 
     @MainActor
     private func toast(_ s: String) {
-        withAnimation { statusToast = s }
+        A11yReduceMotion.withOptionalAnimation(reduceMotion) { statusToast = s }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            withAnimation { statusToast = nil }
+            A11yReduceMotion.withOptionalAnimation(reduceMotion) { statusToast = nil }
         }
     }
 

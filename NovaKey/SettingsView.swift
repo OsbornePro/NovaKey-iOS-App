@@ -8,6 +8,8 @@ import UIKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var proStore: ProStore
+    @State private var showProPaywall: Bool = false
 
     @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     @AppStorage("clipboardTimeout") private var clipboardTimeoutRaw: String = ClipboardTimeout.s60.rawValue
@@ -20,6 +22,32 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+
+                Section("NovaKey Pro") {
+                    HStack {
+                        Text("Status")
+                        Spacer()
+                        Text(proStore.isProUnlocked ? "Unlocked" : "Free")
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Pro status \(proStore.isProUnlocked ? "Unlocked" : "Free")")
+
+                    Button {
+                        showProPaywall = true
+                    } label: {
+                        Label(proStore.isProUnlocked ? "Manage Pro" : "Unlock Pro", systemImage: "star.circle")
+                    }
+                    .accessibilityHint("Opens the Pro purchase screen.")
+
+                    Button {
+                        Task { await proStore.restorePurchases() }
+                    } label: {
+                        Label("Restore Purchases", systemImage: "arrow.clockwise")
+                    }
+                    .accessibilityHint("Restores previous purchases.")
+                }
+
                 Section("Appearance") {
                     Picker("Theme", selection: $appearanceModeRaw) {
                         ForEach(AppearanceMode.allCases) { mode in
@@ -66,6 +94,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showProPaywall) { ProPaywallView() }
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .toolbar {

@@ -69,6 +69,7 @@ struct QRScannerView: UIViewControllerRepresentable {
                     didFinish = true
                     DispatchQueue.main.async {
                         dataScanner.stopScanning()
+                        A11yAnnounce.say("QR code scanned.")
                         self.onResult(payload)
                     }
                     return
