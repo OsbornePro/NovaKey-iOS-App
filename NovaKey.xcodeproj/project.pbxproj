@@ -35,6 +35,7 @@
 		B94716022EF9A7AE0011D282 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716012EF9A7AE0011D282 /* AboutView.swift */; };
 		B94716042EF9A7C50011D282 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716032EF9A7C50011D282 /* HelpView.swift */; };
 		B94716062EF9BE400011D282 /* PairQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716052EF9BE400011D282 /* PairQR.swift */; };
+		B95DC1892F05FD2A004B319D /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */; };
 		B9EE186F2EFF1F48000F3019 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE186E2EFF1F48000F3019 /* TestSupport.swift */; };
 		B9EE18712EFF1F67000F3019 /* PairQRDecodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */; };
 		B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */; };
@@ -42,7 +43,6 @@
 		B9EE18772EFF1FBE000F3019 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */; };
 		B9EE18792EFF2440000F3019 /* TechnicalDetailsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */; };
 		B9EE187B2EFF468E000F3019 /* PairingPasteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */; };
-		B9EE18852F00AE5B000F3019 /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B9EE18842F00AE5B000F3019 /* NovaKeyKEM.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +107,7 @@
 		B94716032EF9A7C50011D282 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		B94716052EF9BE400011D282 /* PairQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQR.swift; sourceTree = "<group>"; };
 		B94716072EF9CAEF0011D282 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = Frameworks/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 		B9EE186E2EFF1F48000F3019 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQRDecodeTests.swift; sourceTree = "<group>"; };
 		B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManagerTests.swift; sourceTree = "<group>"; };
@@ -114,7 +115,6 @@
 		B9EE18762EFF1FBE000F3019 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 		B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechnicalDetailsSheet.swift; sourceTree = "<group>"; };
 		B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingPasteSheet.swift; sourceTree = "<group>"; };
-		B9EE18842F00AE5B000F3019 /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = ../NovaKeyKEMBridge/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,7 +123,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B94715FC2EF8C1C90011D282 /* Sodium in Frameworks */,
-				B9EE18852F00AE5B000F3019 /* NovaKeyKEM.xcframework in Frameworks */,
+				B95DC1892F05FD2A004B319D /* NovaKeyKEM.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,7 +147,7 @@
 		B947159F2EF354300011D282 = {
 			isa = PBXGroup;
 			children = (
-				B9EE18842F00AE5B000F3019 /* NovaKeyKEM.xcframework */,
+				B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */,
 				B94715AA2EF354310011D282 /* NovaKey */,
 				B94715C02EF354350011D282 /* NovaKeyTests */,
 				B94715CA2EF354350011D282 /* NovaKeyUITests */,
