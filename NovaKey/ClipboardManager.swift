@@ -9,6 +9,20 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
+protocol PasteboardProviding {
+    var changeCount: Int { get }
+    func setItems(_ items: [[String: Any]], options: [UIPasteboard.OptionsKey: Any])
+}
+
+/// Production implementation that uses the system pasteboard.
+struct SystemPasteboard: PasteboardProviding {
+    var changeCount: Int { UIPasteboard.general.changeCount }
+
+    func setItems(_ items: [[String: Any]], options: [UIPasteboard.OptionsKey: Any]) {
+        UIPasteboard.general.setItems(items, options: options)
+    }
+}
+
 enum ClipboardTimeout: String, CaseIterable, Identifiable {
     case never
     case s15, s30, s60, s120, s300
