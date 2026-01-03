@@ -11,8 +11,7 @@ import XCTest
 final class PairQRDecodeTests: XCTestCase {
 
     func testDecodeV3ValidQR() throws {
-        // Use current port
-        let qr = "novakey://pair?v=3&addr=10.0.0.5&port=60768&token=abc123"
+        let qr = "novakey://pair?v=3&host=10.0.0.5&port=60768&token=abc123"
         let link = try decodeNovaKeyPairQRLink(qr)
 
         XCTAssertEqual(link.version, 3)
