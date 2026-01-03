@@ -112,6 +112,7 @@
 		B94716052EF9BE400011D282 /* PairQR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQR.swift; sourceTree = "<group>"; };
 		B94716072EF9CAEF0011D282 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = Frameworks/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
+		B9A0AD482F099053002B56F2 /* NovaKey-CI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "NovaKey-CI.xctestplan"; sourceTree = "<group>"; };
 		B9EE186E2EFF1F48000F3019 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQRDecodeTests.swift; sourceTree = "<group>"; };
 		B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManagerTests.swift; sourceTree = "<group>"; };
@@ -155,6 +156,7 @@
 		B947159F2EF354300011D282 = {
 			isa = PBXGroup;
 			children = (
+				B9A0AD482F099053002B56F2 /* NovaKey-CI.xctestplan */,
 				B9FECAD52F071A6600E10E2A /* AccessibilitySupport.swift */,
 				B9FECAD62F071A6600E10E2A /* NovaKey.xcdatamodeld */,
 				B9FECAD82F071A6600E10E2A /* ProPaywallView.swift */,
