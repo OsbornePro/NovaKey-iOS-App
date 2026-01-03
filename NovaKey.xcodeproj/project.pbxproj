@@ -36,6 +36,8 @@
 		B94716042EF9A7C50011D282 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716032EF9A7C50011D282 /* HelpView.swift */; };
 		B94716062EF9BE400011D282 /* PairQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716052EF9BE400011D282 /* PairQR.swift */; };
 		B95DC1892F05FD2A004B319D /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */; };
+		B9A0AD4C2F09A155002B56F2 /* Contents.json in Resources */ = {isa = PBXBuildFile; fileRef = B9A0AD492F09A155002B56F2 /* Contents.json */; };
+		B9A0AD4D2F09A155002B56F2 /* NovaKey.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B9A0AD4A2F09A155002B56F2 /* NovaKey.xcdatamodeld */; };
 		B9EE186F2EFF1F48000F3019 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE186E2EFF1F48000F3019 /* TestSupport.swift */; };
 		B9EE18712EFF1F67000F3019 /* PairQRDecodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */; };
 		B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */; };
@@ -113,6 +115,8 @@
 		B94716072EF9CAEF0011D282 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = NovaKeyKEM.xcframework; path = Frameworks/NovaKeyKEM.xcframework; sourceTree = "<group>"; };
 		B9A0AD482F099053002B56F2 /* NovaKey-CI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "NovaKey-CI.xctestplan"; sourceTree = "<group>"; };
+		B9A0AD492F09A155002B56F2 /* Contents.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = Contents.json; path = "NovaKey/Preview Content/Preview Assets.xcassets/Contents.json"; sourceTree = SOURCE_ROOT; };
+		B9A0AD4B2F09A155002B56F2 /* NovaKey.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = NovaKey.xcdatamodel; sourceTree = "<group>"; };
 		B9EE186E2EFF1F48000F3019 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairQRDecodeTests.swift; sourceTree = "<group>"; };
 		B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManagerTests.swift; sourceTree = "<group>"; };
@@ -238,6 +242,8 @@
 			isa = PBXGroup;
 			children = (
 				B94715CB2EF354350011D282 /* NovaKeyUITests.swift */,
+				B9A0AD492F09A155002B56F2 /* Contents.json */,
+				B9A0AD4A2F09A155002B56F2 /* NovaKey.xcdatamodeld */,
 				B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */,
 			);
 			path = NovaKeyUITests;
@@ -370,6 +376,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9A0AD4C2F09A155002B56F2 /* Contents.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,6 +435,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9A0AD4D2F09A155002B56F2 /* NovaKey.xcdatamodeld in Sources */,
 				B94715CE2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift in Sources */,
 				B94715CC2EF354350011D282 /* NovaKeyUITests.swift in Sources */,
 			);
@@ -780,6 +788,17 @@
 			);
 			currentVersion = B94715B72EF354340011D282 /* NovaKey.xcdatamodel */;
 			path = NovaKey.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+		B9A0AD4A2F09A155002B56F2 /* NovaKey.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				B9A0AD4B2F09A155002B56F2 /* NovaKey.xcdatamodel */,
+			);
+			currentVersion = B9A0AD4B2F09A155002B56F2 /* NovaKey.xcdatamodel */;
+			name = NovaKey.xcdatamodeld;
+			path = ../NovaKey/NovaKey.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};

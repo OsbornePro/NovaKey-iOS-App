@@ -1,5 +1,8 @@
 import Foundation
 import StoreKit
+#if canImport(UIKit)
+import UIKit
+#endif
 import SwiftUI
 
 @MainActor
@@ -95,6 +98,52 @@ final class ProStore: ObservableObject {
             lastErrorMessage = error.localizedDescription
         }
     }
+
+    /// Presents Apple's built-in offer code redemption sheet (IAP offer codes).
+    /// - Note: For iOS 16+, uses `AppStore.presentOfferCodeRedeemSheet(in:)`.
+    ///         For iOS 14–15, falls back to `SKPaymentQueue.presentCodeRedemptionSheet()`.
+    func presentOfferCodeRedemption() {
+        lastErrorMessage = nil
+
+        #if canImport(UIKit)
+        if #available(iOS 16.0, *) {
+            guard let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+                ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+            else {
+                lastErrorMessage = "Unable to find an active window to present the code redemption sheet."
+                return
+            }
+
+            Task {
+                do {
+                    try await AppStore.presentOfferCodeRedeemSheet(in: scene)
+                    // After redemption, refresh local entitlements.
+                    await refreshEntitlements()
+                } catch {
+                    let msg = error.localizedDescription
+                    if msg.localizedCaseInsensitiveContains("cancel") {
+                            return
+                    }
+                    if msg.localizedCaseInsensitiveContains("no active account") {
+                        lastErrorMessage = """
+                        Redeem Code requires an App Store account. This usually won’t work in the Simulator.
+                        Try on a real device signed into the App Store.
+                        """
+                    } else {
+                        lastErrorMessage = msg
+                    }
+                }
+            }
+        } else {
+            SKPaymentQueue.default().presentCodeRedemptionSheet()
+        }
+        #else
+        // Should never happen on iOS, but keep it safe for other platforms.
+        lastErrorMessage = "Code redemption isn't available on this platform."
+        #endif
+    }
+
 
     // MARK: - Private
 

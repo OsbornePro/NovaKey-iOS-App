@@ -60,6 +60,16 @@ struct ProPaywallView: View {
                         }
                         .buttonStyle(.bordered)
                         .accessibilityHint("Restores your previous purchases.")
+
+                        Button {
+                            proStore.presentOfferCodeRedemption()
+                        } label: {
+                            Text("Redeem Code")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityHint("Opens Apple's code redemption sheet so you can redeem an offer code.")
+
                     }
 
                     if proStore.isProUnlocked {
