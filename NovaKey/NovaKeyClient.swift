@@ -2,8 +2,6 @@
 //  NovaKeyClient.swift
 //  NovaKey
 //
-//  DROP-IN REPLACEMENT
-//
 //  Notes:
 //  - Pairing (/pair) still uses sendFinal (EOF) because pairing handler reads until EOF.
 //  - Send (/msg) uses normal send (no half-close) and reads a single JSON line.
@@ -39,18 +37,8 @@ struct PairServerKey: Codable {
 }
 
 // reply.go schema:
-// { v, status, stage, reason, msg, ts_unix, req_id }
-private struct DaemonReply: Decodable {
-    let v: Int
-    let status: UInt8
-    let stage: ReplyStage
-    let reason: ReplyReason
-    let msg: String
-    let ts_unix: Int64
-    let req_id: UInt64
-}
-
 // Forward-compatible: unknown strings don't break decoding.
+
 enum ReplyStage: Decodable, Equatable, CustomStringConvertible {
     case msg, inject, approve, arm, disarm
     case unknown(String)
@@ -315,7 +303,13 @@ final class NovaKeyPairClient {
         if ct.isEmpty {
             throw NovaKeyPairError.protocolError("empty ack ciphertext")
         }
-        let ack = nonce + ct
+
+        // Data + Data is not guaranteed; build explicitly.
+        var ack = Data()
+        ack.reserveCapacity(nonce.count + ct.count)
+        ack.append(nonce)
+        ack.append(ct)
+
         guard ack.count >= 24 + 16 else {
             throw NovaKeyPairError.protocolError("ack too short: \(ack.count)")
         }
@@ -337,6 +331,56 @@ final class NovaKeyPairClient {
 }
 
 // MARK: - Send client (/msg)
+
+private struct DaemonReply: Decodable {
+    let v: Int
+    let status: UInt8
+    let stage: ReplyStage
+    let reason: ReplyReason
+    let msg: String
+    let ts_unix: Int64
+    let req_id: UInt64
+
+    enum CodingKeys: String, CodingKey {
+        case v, status, stage, reason, msg, ts_unix, req_id
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Version: default to 1 if absent
+        self.v = (try c.decodeIfPresent(Int.self, forKey: .v)) ?? 1
+
+        // status may arrive as Int in some encoders/bridges; tolerate both.
+        if let u8 = try c.decodeIfPresent(UInt8.self, forKey: .status) {
+            self.status = u8
+        } else if let i = try c.decodeIfPresent(Int.self, forKey: .status) {
+            self.status = UInt8(clamping: i)
+        } else {
+            self.status = 0x7F // internal error fallback
+        }
+
+        // stage/reason: decode using their tolerant Decodable impls; tolerate missing/null.
+        if let st = try c.decodeIfPresent(ReplyStage.self, forKey: .stage) {
+            self.stage = st
+        } else {
+            self.stage = .unknown("missing")
+        }
+
+        if let rsn = try c.decodeIfPresent(ReplyReason.self, forKey: .reason) {
+            self.reason = rsn
+        } else {
+            self.reason = .unknown("missing")
+        }
+
+        // msg can be missing or null
+        self.msg = (try c.decodeIfPresent(String.self, forKey: .msg)) ?? ""
+
+        // timestamps/req id can be missing
+        self.ts_unix = (try c.decodeIfPresent(Int64.self, forKey: .ts_unix)) ?? 0
+        self.req_id = (try c.decodeIfPresent(UInt64.self, forKey: .req_id)) ?? 0
+    }
+}
 
 final class NovaKeyClient {
     private let queue = DispatchQueue(label: "novakey.send.client")
@@ -362,7 +406,23 @@ final class NovaKeyClient {
             Status(rawValue: raw) ?? .unknown
         }
 
-        var description: String { "\(self)" }
+        // IMPORTANT: "\(self)" here would recurse forever. Provide explicit mapping.
+        var description: String {
+            switch self {
+            case .ok: return "ok"
+            case .notArmed: return "notArmed"
+            case .needsApprove: return "needsApprove"
+            case .notPaired: return "notPaired"
+            case .badRequest: return "badRequest"
+            case .badTimestamp: return "badTimestamp"
+            case .replay: return "replay"
+            case .rateLimit: return "rateLimit"
+            case .cryptoFail: return "cryptoFail"
+            case .okClipboard: return "okClipboard"
+            case .internalError: return "internalError"
+            case .unknown: return "unknown"
+            }
+        }
     }
 
     struct ServerResponse {
@@ -385,20 +445,19 @@ final class NovaKeyClient {
             if isClipboardFallback {
                 return "Copied to clipboard. Paste into the focused field."
             }
-            return message.trimmingCharacters(in: .whitespacesAndNewlines)
+            let t = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? "No message from server." : t
         }
     }
 
     enum ClientError: Error, LocalizedError {
         case invalidHost
         case connectFailed(Error?)
-        case badReply(String)
 
         var errorDescription: String? {
             switch self {
             case .invalidHost: return "Invalid host"
             case .connectFailed(let e): return "Connect failed: \(e?.localizedDescription ?? "unknown")"
-            case .badReply(let s): return "Bad reply: \(s)"
             }
         }
     }
@@ -408,25 +467,25 @@ final class NovaKeyClient {
     func sendApprove(pairing: PairingRecord) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildApproveFrame(pairing: pairing)
         let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
-        return try parseServerResponse(data)
+        return parseServerResponse(data)
     }
 
     func sendInject(secret: String, pairing: PairingRecord) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildInjectFrame(pairing: pairing, secret: secret)
         let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
-        return try parseServerResponse(data)
+        return parseServerResponse(data)
     }
 
     func sendArm(pairing: PairingRecord, durationMs: Int? = nil) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildArmFrame(pairing: pairing, durationMs: durationMs)
         let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
-        return try parseServerResponse(data)
+        return parseServerResponse(data)
     }
 
     func sendDisarm(pairing: PairingRecord) async throws -> ServerResponse {
         let frame = try NovaKeyProtocolV3.buildDisarmFrame(pairing: pairing)
         let data = try await sendRaw(frame: frame, host: pairing.serverHost, port: pairing.serverPort)
-        return try parseServerResponse(data)
+        return parseServerResponse(data)
     }
 
     // MARK: Raw transport
@@ -529,20 +588,34 @@ final class NovaKeyClient {
         return buffer
     }
 
-    // MARK: Reply parsing
+    // MARK: Reply parsing (non-crashing)
 
-    private func parseServerResponse(_ data: Data) throws -> ServerResponse {
-        let trimmed = data.trimmingTrailingNewlines()
-        guard !trimmed.isEmpty else { throw ClientError.badReply("empty response") }
+    private func parseServerResponse(_ data: Data) -> ServerResponse {
+        let trimmedAll = data.trimmingTrailingNewlines()
 
-        do {
-            let d = try JSONDecoder().decode(DaemonReply.self, from: trimmed)
-
-            // reply.go: replyVersion = 1
-            guard d.v == 1 else {
-                throw ClientError.badReply("unsupported reply version v=\(d.v)")
+        // SUPER IMPORTANT: if the daemon ever sends more than one line,
+        // decode only the first JSON line.
+        let firstLine: Data = {
+            if let nl = trimmedAll.firstIndex(of: 0x0A) { // \n
+                return trimmedAll.prefix(upTo: nl)
             }
+            return trimmedAll
+        }()
 
+        guard !firstLine.isEmpty else {
+            return ServerResponse(
+                status: .internalError,
+                message: "Empty response from server.",
+                stage: .unknown("missing"),
+                reason: .unknown("empty_response"),
+                reqID: 0,
+                replyVersion: 0,
+                tsUnix: 0
+            )
+        }
+
+        // Try strict decode first (but tolerant fields)
+        if let d = try? JSONDecoder().decode(DaemonReply.self, from: firstLine) {
             return ServerResponse(
                 status: Status.from(raw: d.status),
                 message: d.msg,
@@ -552,10 +625,20 @@ final class NovaKeyClient {
                 replyVersion: d.v,
                 tsUnix: d.ts_unix
             )
-        } catch {
-            let raw = String(decoding: trimmed, as: UTF8.self)
-            throw ClientError.badReply("decode failed: \(error.localizedDescription) raw=\(raw)")
         }
+
+        // If it wasn't decodable JSON (or schema mismatch), DO NOT throw.
+        // Return a safe internalError response with raw payload for diagnostics.
+        let raw = String(decoding: firstLine, as: UTF8.self)
+        return ServerResponse(
+            status: .internalError,
+            message: "Unexpected server reply: \(raw)",
+            stage: .unknown("decode_failed"),
+            reason: .unknown("decode_failed"),
+            reqID: 0,
+            replyVersion: 0,
+            tsUnix: 0
+        )
     }
 }
 
@@ -566,3 +649,4 @@ private extension Data {
         return d
     }
 }
+
