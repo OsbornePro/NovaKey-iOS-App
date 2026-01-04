@@ -5,7 +5,10 @@
 //  Notes:
 //  - Pairing (/pair) still uses sendFinal (EOF) because pairing handler reads until EOF.
 //  - Send (/msg) uses normal send (no half-close) and reads a single JSON line.
-//  - Adds clipboard-fallback UX helpers: ServerResponse.isClipboardFallback + userFacingMessage
+//  - Forward-compatible reply parsing:
+//      * Primary schema: DaemonReply (v/status/stage/reason/msg/ts_unix/req_id)
+//      * Alternate schema: AltReply (ok/status/error/reason/message/clipboard_fallback/...)
+//  - Never crashes on unknown/changed server responses.
 //
 
 import Foundation
@@ -304,7 +307,6 @@ final class NovaKeyPairClient {
             throw NovaKeyPairError.protocolError("empty ack ciphertext")
         }
 
-        // Data + Data is not guaranteed; build explicitly.
         var ack = Data()
         ack.reserveCapacity(nonce.count + ct.count)
         ack.append(nonce)
@@ -360,7 +362,7 @@ private struct DaemonReply: Decodable {
             self.status = 0x7F // internal error fallback
         }
 
-        // stage/reason: decode using their tolerant Decodable impls; tolerate missing/null.
+        // stage/reason: tolerant Decodable impls; tolerate missing/null.
         if let st = try c.decodeIfPresent(ReplyStage.self, forKey: .stage) {
             self.stage = st
         } else {
@@ -379,6 +381,54 @@ private struct DaemonReply: Decodable {
         // timestamps/req id can be missing
         self.ts_unix = (try c.decodeIfPresent(Int64.self, forKey: .ts_unix)) ?? 0
         self.req_id = (try c.decodeIfPresent(UInt64.self, forKey: .req_id)) ?? 0
+    }
+}
+
+// Alternate schema for policy/deny/fallback responses (forward compatible).
+private struct AltReply: Decodable {
+    let ok: Bool?
+    let status: String?
+    let stage: String?
+    let reason: String?
+    let error: String?
+    let message: String?
+    let msg: String?
+    let clipboard_fallback: Bool?
+    let ts_unix: Int64?
+    let req_id: UInt64?
+
+    enum CodingKeys: String, CodingKey {
+        case ok, status, stage, reason, error, message, msg
+        case clipboard_fallback
+        case ts_unix
+        case req_id
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        ok = try? c.decodeIfPresent(Bool.self, forKey: .ok)
+        status = try? c.decodeIfPresent(String.self, forKey: .status)
+        stage = try? c.decodeIfPresent(String.self, forKey: .stage)
+        reason = try? c.decodeIfPresent(String.self, forKey: .reason)
+        error = try? c.decodeIfPresent(String.self, forKey: .error)
+        message = try? c.decodeIfPresent(String.self, forKey: .message)
+        msg = try? c.decodeIfPresent(String.self, forKey: .msg)
+        clipboard_fallback = try? c.decodeIfPresent(Bool.self, forKey: .clipboard_fallback)
+        ts_unix = try? c.decodeIfPresent(Int64.self, forKey: .ts_unix)
+
+        if let u = try? c.decodeIfPresent(UInt64.self, forKey: .req_id) {
+            req_id = u
+        } else if let s = try? c.decodeIfPresent(String.self, forKey: .req_id), let u = UInt64(s) {
+            req_id = u
+        } else {
+            req_id = nil
+        }
+    }
+
+    var bestMessage: String {
+        let t = (message ?? msg ?? error ?? reason ?? status ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return t
     }
 }
 
@@ -406,7 +456,6 @@ final class NovaKeyClient {
             Status(rawValue: raw) ?? .unknown
         }
 
-        // IMPORTANT: "\(self)" here would recurse forever. Provide explicit mapping.
         var description: String {
             switch self {
             case .ok: return "ok"
@@ -567,7 +616,6 @@ final class NovaKeyClient {
                     return
                 }
                 if isComplete {
-                    // peer closed — return whatever we got (maybe empty)
                     cont.resume(returning: data ?? Data())
                     return
                 }
@@ -588,13 +636,12 @@ final class NovaKeyClient {
         return buffer
     }
 
-    // MARK: Reply parsing (non-crashing)
+    // MARK: Reply parsing (non-crashing, schema-flexible)
 
     private func parseServerResponse(_ data: Data) -> ServerResponse {
         let trimmedAll = data.trimmingTrailingNewlines()
 
-        // SUPER IMPORTANT: if the daemon ever sends more than one line,
-        // decode only the first JSON line.
+        // Decode only the first JSON line if multiple are present.
         let firstLine: Data = {
             if let nl = trimmedAll.firstIndex(of: 0x0A) { // \n
                 return trimmedAll.prefix(upTo: nl)
@@ -614,7 +661,7 @@ final class NovaKeyClient {
             )
         }
 
-        // Try strict decode first (but tolerant fields)
+        // 1) Primary schema
         if let d = try? JSONDecoder().decode(DaemonReply.self, from: firstLine) {
             return ServerResponse(
                 status: Status.from(raw: d.status),
@@ -627,8 +674,58 @@ final class NovaKeyClient {
             )
         }
 
-        // If it wasn't decodable JSON (or schema mismatch), DO NOT throw.
-        // Return a safe internalError response with raw payload for diagnostics.
+        // 2) Alternate schema (policy/deny/fallback)
+        if let a = try? JSONDecoder().decode(AltReply.self, from: firstLine) {
+            let msg = a.bestMessage.isEmpty ? "Server replied." : a.bestMessage
+
+            let mappedReason: ReplyReason = {
+                let r = (a.reason ?? a.error ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if r.contains("clipboard") { return .clipboard_fallback }
+                if r.contains("inject_unavailable_wayland") { return .inject_unavailable_wayland }
+                if r.contains("needs_approve") || r.contains("needs-approve") { return .needs_approve }
+                if r.contains("not_armed") { return .not_armed }
+                if r.contains("not_paired") { return .not_paired }
+                if r.contains("rate") { return .rate_limit }
+                if r.contains("bad_timestamp") { return .bad_timestamp }
+                if r.contains("replay") { return .replay }
+                if r.contains("crypto") { return .crypto_fail }
+                if r.contains("internal") { return .internal_error }
+                if r.contains("bad") { return .bad_request }
+                return r.isEmpty ? .unknown("alt_missing_reason") : .unknown(r)
+            }()
+
+            let mappedStage: ReplyStage = {
+                let s = (a.stage ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                guard !s.isEmpty else { return .unknown("alt_missing_stage") }
+                switch s {
+                case "msg": return .msg
+                case "inject": return .inject
+                case "approve": return .approve
+                case "arm": return .arm
+                case "disarm": return .disarm
+                default: return .unknown(s)
+                }
+            }()
+
+            let mappedStatus: Status = {
+                if a.clipboard_fallback == true { return .okClipboard }
+                if a.ok == true { return .ok }
+                // policy denies / target blocked should be non-success but NOT internal error
+                return .badRequest
+            }()
+
+            return ServerResponse(
+                status: mappedStatus,
+                message: msg,
+                stage: mappedStage,
+                reason: mappedReason,
+                reqID: a.req_id ?? 0,
+                replyVersion: 0,
+                tsUnix: a.ts_unix ?? 0
+            )
+        }
+
+        // 3) Raw fallback (never throw, never crash)
         let raw = String(decoding: firstLine, as: UTF8.self)
         return ServerResponse(
             status: .internalError,
@@ -649,4 +746,3 @@ private extension Data {
         return d
     }
 }
-
