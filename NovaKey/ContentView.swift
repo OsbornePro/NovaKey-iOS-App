@@ -668,7 +668,11 @@ struct ContentView: View {
 
     private static func friendlyStatusMessage(_ status: NovaKeyClient.Status, targetName: String) -> String {
         switch status {
-        case .notArmed:      return "Computer isn’t armed. Arm NovaKey-Daemon, then try again."
+        case .notArmed:      return """
+    Computer isn’t armed, so NovaKey couldn’t inject keystrokes.
+    If your server is configured to fall back to clipboard (or you notice it copied anyway), try pasting now.
+    Otherwise, Arm NovaKey-Daemon and send again.
+    """ 
         case .needsApprove:  return "Computer needs approval. Approve on the computer, then try again."
         case .notPaired:     return "Not paired with \(targetName). Re-pair and try again."
         case .badRequest:    return "Request rejected by the computer."
