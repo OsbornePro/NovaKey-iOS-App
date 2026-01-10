@@ -2,8 +2,6 @@
 //  VaultTransferViews.swift
 //  NovaKey
 //
-//  Created by Robert Osborne on 12/21/25.
-//
 
 import SwiftUI
 import SwiftData
@@ -66,35 +64,37 @@ struct VaultTransferViews: View {
                             Text(p.label).tag(p)
                         }
                     }
-                    
+
                     Picker("Cipher", selection: $cipher) {
                         ForEach(VaultCipher.allCases) { c in
                             Text(c.label).tag(c)
                         }
                     }
                     .disabled(protection == .none)
-                    
+
                     if protection == .password {
                         SecureField("Password", text: $password)
                         SecureField("Confirm Password", text: $confirmPassword)
-                        
+
                         if !confirmPassword.isEmpty && password != confirmPassword {
                             Text("Passwords do not match.")
                                 .font(.footnote)
                                 .foregroundStyle(.red)
                         }
                     }
-                    
+
                     Toggle("Require Face ID during export", isOn: $requireFreshBiometric)
-                    
+
                     Button("Export Vault…") { doExport() }
                         .disabled(!passwordIsValid)
                 }
-                
+
                 Section("Import") {
-                    Button("Import Vault…") { showingImporter = true }
+                    Button("Import Vault…") {
+                        showingImporter = true
+                    }
                 }
-                
+
                 Section {
                     Button("Done") { dismiss() }
                 }
@@ -123,14 +123,8 @@ struct VaultTransferViews: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
-                    do {
-                        let data = try Data(contentsOf: url)
-                        importData = data
-                        // Attempt import without password first; if password required we'll prompt.
-                        doImport(password: nil)
-                    } catch {
-                        showInfo("Import failed", "Could not read file.")
-                    }
+                    handlePickedImportURL(url)
+
                 case .failure(let err):
                     showInfo("Import failed", err.localizedDescription)
                 }
@@ -209,6 +203,7 @@ struct VaultTransferViews: View {
             }
         }
     }
+
     // MARK: - Export
 
     private func doExport() {
@@ -240,6 +235,44 @@ struct VaultTransferViews: View {
     }
 
     // MARK: - Import
+
+    /// Handles reading the picked file reliably (security-scoped + temp copy), then kicks off import.
+    private func handlePickedImportURL(_ url: URL) {
+        do {
+            let data = try readPickedFileData(url)
+            importData = data
+            importSelectionCompleted = true
+
+            // Attempt import without password first; if password required we'll prompt.
+            doImport(password: nil)
+
+        } catch {
+            showInfo("Import failed", "Could not read file. \(error.localizedDescription)")
+        }
+    }
+
+    /// Reads a file picked from UIDocumentPicker.
+    /// - Uses security-scoped access.
+    /// - Copies the file to a temp location first (more reliable with cloud providers).
+    private func readPickedFileData(_ url: URL) throws -> Data {
+        let didStart = url.startAccessingSecurityScopedResource()
+        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+
+        // Some providers are flaky when reading directly; copy locally first.
+        let tmpDir = FileManager.default.temporaryDirectory
+        let tmpURL = tmpDir.appendingPathComponent("novakey-import-\(UUID().uuidString)-\(url.lastPathComponent)")
+
+        // Remove if somehow exists
+        try? FileManager.default.removeItem(at: tmpURL)
+
+        do {
+            try FileManager.default.copyItem(at: url, to: tmpURL)
+            return try Data(contentsOf: tmpURL)
+        } catch {
+            // Fallback: try direct read (covers cases where copyItem fails but direct read works)
+            return try Data(contentsOf: url)
+        }
+    }
 
     private func doImport(password: String?) {
         guard let data = importData else { return }
@@ -296,26 +329,5 @@ struct VaultTransferViews: View {
         alertMessage = message
         dismissAfterAlertOK = dismissOnOK
         showAlert = true
-    }
-}
-
-// MARK: - FileDocument wrapper
-
-/// Minimal FileDocument so we can use fileExporter with raw Data.
-struct VaultFileDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json] }
-
-    var data: Data
-
-    init(data: Data) {
-        self.data = data
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        data = configuration.file.regularFileContents ?? Data()
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
     }
 }
