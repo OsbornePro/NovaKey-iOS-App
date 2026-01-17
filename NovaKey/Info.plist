@@ -2,15 +2,70 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <false/>
+
+	<!-- Keep: Local network arbitrary loads -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInLocalNetwork</key>
 		<true/>
 	</dict>
+
+	<!-- Keep: Bonjour service discovery -->
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_http._tcp</string>
 		<string>_novakey._tcp</string>
 	</array>
+
+	<!-- Add: Exported UTI for NovaKey vault files -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.novakey.vault</string>
+
+			<key>UTTypeDescription</key>
+			<string>NovaKey Vault</string>
+
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>novakeyvault</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/json</string>
+			</dict>
+		</dict>
+	</array>
+
+	<!-- Add: Document type so Files/Open In recognizes it -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>NovaKey Vault</string>
+
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.novakey.vault</string>
+			</array>
+		</dict>
+	</array>
+
 </dict>
 </plist>
+

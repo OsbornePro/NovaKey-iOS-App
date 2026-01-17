@@ -13,7 +13,6 @@
 		B94715AE2EF354310011D282 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AD2EF354310011D282 /* ContentView.swift */; };
 		B94715B02EF354340011D282 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715AF2EF354340011D282 /* Assets.xcassets */; };
 		B94715B32EF354340011D282 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715B22EF354340011D282 /* Preview Assets.xcassets */; };
-		B94715B82EF354340011D282 /* NovaKey.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B94715B62EF354340011D282 /* NovaKey.xcdatamodeld */; };
 		B94715C22EF354350011D282 /* NovaKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715C12EF354350011D282 /* NovaKeyTests.swift */; };
 		B94715CC2EF354350011D282 /* NovaKeyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CB2EF354350011D282 /* NovaKeyUITests.swift */; };
 		B94715CE2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715CD2EF354350011D282 /* NovaKeyUITestsLaunchTests.swift */; };
@@ -38,7 +37,6 @@
 		B94716062EF9BE400011D282 /* PairQR.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94716052EF9BE400011D282 /* PairQR.swift */; };
 		B95DC1892F05FD2A004B319D /* NovaKeyKEM.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B95DC1882F05FD2A004B319D /* NovaKeyKEM.xcframework */; };
 		B9A0AD4C2F09A155002B56F2 /* Contents.json in Resources */ = {isa = PBXBuildFile; fileRef = B9A0AD492F09A155002B56F2 /* Contents.json */; };
-		B9A0AD4D2F09A155002B56F2 /* NovaKey.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B9A0AD4A2F09A155002B56F2 /* NovaKey.xcdatamodeld */; };
 		B9EE186F2EFF1F48000F3019 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE186E2EFF1F48000F3019 /* TestSupport.swift */; };
 		B9EE18712EFF1F67000F3019 /* PairQRDecodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18702EFF1F67000F3019 /* PairQRDecodeTests.swift */; };
 		B9EE18732EFF1F89000F3019 /* PairingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EE18722EFF1F89000F3019 /* PairingManagerTests.swift */; };
