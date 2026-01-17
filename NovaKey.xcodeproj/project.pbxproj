@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B91468042EFA047A00C8BF71 /* AVFoundationQRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */; };
+		B92100472F1C1DD30037C3B8 /* VaultFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92100462F1C1DD30037C3B8 /* VaultFileDocument.swift */; };
 		B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AB2EF354310011D282 /* NovaKeyApp.swift */; };
 		B94715AE2EF354310011D282 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94715AD2EF354310011D282 /* ContentView.swift */; };
 		B94715B02EF354340011D282 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B94715AF2EF354340011D282 /* Assets.xcassets */; };
@@ -83,6 +84,7 @@
 
 /* Begin PBXFileReference section */
 		B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVFoundationQRScannerView.swift; sourceTree = "<group>"; };
+		B92100462F1C1DD30037C3B8 /* VaultFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultFileDocument.swift; sourceTree = "<group>"; };
 		B94715A82EF354310011D282 /* NovaKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NovaKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B94715AB2EF354310011D282 /* NovaKeyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaKeyApp.swift; sourceTree = "<group>"; };
 		B94715AD2EF354310011D282 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				B91468032EFA047A00C8BF71 /* AVFoundationQRScannerView.swift */,
 				B9EE18782EFF2440000F3019 /* TechnicalDetailsSheet.swift */,
 				B9EE187A2EFF468E000F3019 /* PairingPasteSheet.swift */,
+				B92100462F1C1DD30037C3B8 /* VaultFileDocument.swift */,
 			);
 			path = NovaKey;
 			sourceTree = "<group>";
@@ -410,6 +413,7 @@
 				B94715AE2EF354310011D282 /* ContentView.swift in Sources */,
 				B94715EB2EF892500011D282 /* SettingsView.swift in Sources */,
 				B94715AC2EF354310011D282 /* NovaKeyApp.swift in Sources */,
+				B92100472F1C1DD30037C3B8 /* VaultFileDocument.swift in Sources */,
 				B94716022EF9A7AE0011D282 /* AboutView.swift in Sources */,
 				B94716062EF9BE400011D282 /* PairQR.swift in Sources */,
 				B9FECAD92F071A6600E10E2A /* ProStore.swift in Sources */,
