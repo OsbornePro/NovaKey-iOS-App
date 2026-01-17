@@ -331,3 +331,4 @@ struct VaultTransferViews: View {
         showAlert = true
     }
 }
+
